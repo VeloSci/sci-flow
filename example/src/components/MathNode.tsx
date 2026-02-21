@@ -7,7 +7,7 @@ export const MathNode = ({ node }: any) => {
             border: node.selected ? '2px solid var(--sf-edge-active, #5a9df8)' : '1px solid var(--sf-node-border, #444)',
             borderRadius: '8px',
             color: 'var(--sf-node-text, #fff)',
-            width: '200px', // Explicit size for standard nodes, preventing 1x1 collapse since foreignObject is 1x1 overflow
+            minWidth: '200px', // Allow node to shrink-wrap its vertical content but maintain a readable width
             boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
             display: 'flex',
             flexDirection: 'column',

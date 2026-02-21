@@ -106,12 +106,25 @@ export class InteractionManager {
                 zoom
             });
         } else {
-            // Default Zooming
-            const zoomAmount = e.deltaY * -0.005; // Slightly slower default zoom
+            // Zoom towards mouse cursor
+            // DeltaY is typically around 100 per notch. -0.005 was jumping 0.5 zoom levels per notch.
+            // A much smoother value is -0.001 to get ~0.1 zoom changes per notch.
+            const zoomAmount = e.deltaY * -0.001; 
             const newZoom = Math.min(Math.max(zoom + zoomAmount, this.options.minZoom), this.options.maxZoom);
             
-            // Zoom towards mouse cursor conceptually (simplified center for now)
-            this.stateManager.setViewport({ x, y, zoom: newZoom });
+            const rect = this.container.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            
+            // Point in flow space under the mouse
+            const flowX = (mouseX - x) / zoom;
+            const flowY = (mouseY - y) / zoom;
+            
+            // New viewport offset to keep flowX/flowY under the mouse
+            const newX = mouseX - flowX * newZoom;
+            const newY = mouseY - flowY * newZoom;
+            
+            this.stateManager.setViewport({ x: newX, y: newY, zoom: newZoom });
         }
     }
 
@@ -176,21 +189,27 @@ export class InteractionManager {
 
             // If we got here, we clicked the background. Check Edges first.
             let clickedEdgeId: string | null = null;
-            const HIT_TOLERANCE = 8 / state.viewport.zoom; // Scaled tolerance
+            // 15px logic radius for hit detection (don't scale out of control)
+            const HIT_TOLERANCE = 15 / Math.max(0.1, state.viewport.zoom);
 
             for (const edge of state.edges.values()) {
                 const sourceNode = state.nodes.get(edge.source);
                 const targetNode = state.nodes.get(edge.target);
                 if (!sourceNode || !targetNode) continue;
+                
+                // Real node dimensions from ResizeObserver state
+                const sW = sourceNode.style?.width || 100;
+                const sH = sourceNode.style?.height || 50;
+                const tH = targetNode.style?.height || 50;
 
                 const sourcePos = {
-                   x: sourceNode.position.x + (sourceNode.style?.width || 200),
-                   y: sourceNode.position.y + (sourceNode.style?.height || 150) / 2
+                   x: sourceNode.position.x + sW,
+                   y: sourceNode.position.y + sH / 2
                 };
                 
                 const targetPos = {
                    x: targetNode.position.x,
-                   y: targetNode.position.y + (targetNode.style?.height || 150) / 2
+                   y: targetNode.position.y + tH / 2
                 };
 
                 let dist = Infinity;
@@ -603,21 +622,25 @@ export class InteractionManager {
 
         // If no node clicked, check edges
         let clickedEdgeId: string | null = null;
-        const HIT_TOLERANCE = 8 / state.viewport.zoom; // Scaled tolerance
+        const HIT_TOLERANCE = 15 / Math.max(0.1, state.viewport.zoom); // Scaled tolerance
 
         for (const edge of state.edges.values()) {
             const sourceNode = state.nodes.get(edge.source);
             const targetNode = state.nodes.get(edge.target);
             if (!sourceNode || !targetNode) continue;
 
+            const sW = sourceNode.style?.width || 200;
+            const sH = sourceNode.style?.height || 150;
+            const tH = targetNode.style?.height || 150;
+
             const sourcePos = {
-               x: sourceNode.position.x + (sourceNode.style?.width || 200),
-               y: sourceNode.position.y + (sourceNode.style?.height || 150) / 2
+               x: sourceNode.position.x + sW,
+               y: sourceNode.position.y + sH / 2
             };
             
             const targetPos = {
                x: targetNode.position.x,
-               y: targetNode.position.y + (targetNode.style?.height || 150) / 2
+               y: targetNode.position.y + tH / 2
             };
 
             let dist = Infinity;

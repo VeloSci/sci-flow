@@ -143,6 +143,7 @@ declare class StateManager {
     getState(): FlowState;
     subscribe(listener: Listener): () => void;
     private notify;
+    forceUpdate(): void;
     setNodes(nodes: Node[]): void;
     setSelection(nodeIds: string[], edgeIds: string[]): void;
     appendSelection(nodeId?: string, edgeId?: string): void;

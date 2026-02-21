@@ -77,6 +77,10 @@ export class StateManager {
     this.listeners.forEach((listener) => listener(this.state));
   }
 
+  public forceUpdate() {
+    this.notify();
+  }
+
   // --- State Manipulation for Interaction ---
 
   public setNodes(nodes: Node[]) {

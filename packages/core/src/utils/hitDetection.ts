@@ -22,7 +22,7 @@ export const distanceToBezier = (p: Position, a: Position, b: Position, controlP
      const p2 = { x: b.x - cx, y: b.y };
      
      let minDist = Infinity;
-     const steps = 20; // Resolution for hit detection
+     const steps = 50; // Increased resolution for much better hit detection on sweeping curves
      
      for (let i = 0; i <= steps; i++) {
          const t = i / steps;
@@ -31,7 +31,7 @@ export const distanceToBezier = (p: Position, a: Position, b: Position, controlP
          const qx = mt*mt*mt*a.x + 3*mt*mt*t*p1.x + 3*mt*t*t*p2.x + t*t*t*b.x;
          const qy = mt*mt*mt*a.y + 3*mt*mt*t*p1.y + 3*mt*t*t*p2.y + t*t*t*b.y;
          
-         const dist = Math.sqrt((p.x - qx) ** 2 + (p.y - qy) ** 2);
+         const dist = Math.sqrt(Math.pow(p.x - qx, 2) + Math.pow(p.y - qy, 2));
          if (dist < minDist) {
              minDist = dist;
          }

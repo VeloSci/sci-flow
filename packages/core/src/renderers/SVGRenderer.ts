@@ -178,9 +178,11 @@ export class SVGRenderer extends BaseRenderer {
     // Create groups for layers
     this.edgesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     this.edgesGroup.setAttribute('class', 'sci-flow-edges');
+    this.edgesGroup.style.transformOrigin = '0 0'; // Critial to prevent CSS resets from breaking Zoom math
 
     this.nodesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     this.nodesGroup.setAttribute('class', 'sci-flow-nodes');
+    this.nodesGroup.style.transformOrigin = '0 0'; // Critial to prevent CSS resets from breaking Zoom math
 
     // Append to SVG
     this.svg.appendChild(this.edgesGroup);
@@ -208,16 +210,34 @@ export class SVGRenderer extends BaseRenderer {
         
         // Use ForeignObject to allow complex HTML layouts inside SVG nodes
         const foreignObj = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
-        // Setting fixed numeric sizes causes hit detection boxes to misalign with dynamic React nodes.
-        // We will set to 1x1 with visible overflow so the inner HTML wrapper dictates the actual interactive bounding box
-        foreignObj.setAttribute('width', '1');
-        foreignObj.setAttribute('height', '1');
+        // Initial fallback sizes
+        foreignObj.setAttribute('width', '200');
+        foreignObj.setAttribute('height', '100');
         foreignObj.style.overflow = 'visible';
 
         const wrapper = document.createElement('div');
-        wrapper.style.width = '100%';
-        wrapper.style.height = '100%';
+        // Display inline-block allows the wrapper to auto-size exactly to the React Component's injected dimensions
+        wrapper.style.display = 'inline-block';
         wrapper.style.position = 'relative';
+        
+        // Auto-size foreignObject hit-box perfectly to the native DOM element inside it
+        const ro = new ResizeObserver(() => {
+            const w = wrapper.offsetWidth;
+            const h = wrapper.offsetHeight;
+            if (w > 0 && h > 0) {
+                foreignObj.setAttribute('width', w.toString());
+                foreignObj.setAttribute('height', h.toString());
+                
+                // Update internal state to match exact dimensions for mathematically perfect Smart Routing obstacles
+                const sm = (this as any).stateManager;
+                const stateNode = sm?.getState().nodes.get(node.id);
+                if (stateNode && (stateNode.style?.width !== w || stateNode.style?.height !== h)) {
+                    stateNode.style = { ...stateNode.style, width: w, height: h };
+                    sm?.forceUpdate(); // Force SVGRenderer and UI to re-evaluate edges with new dimensions
+                }
+            }
+        });
+        ro.observe(wrapper);
         
         // Dynamically get node component from registry, fallback to basic div
         const nodeDef = registry.get(node.type);
