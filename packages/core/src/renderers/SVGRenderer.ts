@@ -208,8 +208,10 @@ export class SVGRenderer extends BaseRenderer {
         
         // Use ForeignObject to allow complex HTML layouts inside SVG nodes
         const foreignObj = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
-        foreignObj.setAttribute('width', `${node.style?.width || 200}`);
-        foreignObj.setAttribute('height', `${node.style?.height || 150}`);
+        // Setting fixed numeric sizes causes hit detection boxes to misalign with dynamic React nodes.
+        // We will set to 1x1 with visible overflow so the inner HTML wrapper dictates the actual interactive bounding box
+        foreignObj.setAttribute('width', '1');
+        foreignObj.setAttribute('height', '1');
         foreignObj.style.overflow = 'visible';
 
         const wrapper = document.createElement('div');
@@ -300,6 +302,7 @@ export class SVGRenderer extends BaseRenderer {
             bgPath.style.stroke = 'transparent';
             bgPath.style.strokeWidth = '20px'; // 20px hit area
             bgPath.style.cursor = 'pointer';
+            bgPath.style.pointerEvents = 'stroke'; // ensure this path exclusively catches structural pointer events
             
             // The actual visible edge path
             const fgPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');

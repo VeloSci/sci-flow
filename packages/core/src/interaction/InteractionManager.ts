@@ -98,21 +98,20 @@ export class InteractionManager {
         const state = this.stateManager.getState();
         const { x, y, zoom } = state.viewport;
         
-        // Handle zoom on ctrl, pan otherwise (like Figma/Blender)
-        if (e.ctrlKey || e.metaKey) {
-            const zoomAmount = e.deltaY * -0.01;
-            const newZoom = Math.min(Math.max(zoom + zoomAmount, this.options.minZoom), this.options.maxZoom);
-            
-            // Zoom towards mouse cursor conceptually (simplified center for now)
-            
-            this.stateManager.setViewport({ x, y, zoom: newZoom });
-        } else {
-            // Panning via trackpad scroll
+        // Panning via Shift or Ctrl/Cmd
+        if (e.ctrlKey || e.metaKey || e.shiftKey) {
             this.stateManager.setViewport({
                 x: x - e.deltaX,
                 y: y - e.deltaY,
                 zoom
             });
+        } else {
+            // Default Zooming
+            const zoomAmount = e.deltaY * -0.005; // Slightly slower default zoom
+            const newZoom = Math.min(Math.max(zoom + zoomAmount, this.options.minZoom), this.options.maxZoom);
+            
+            // Zoom towards mouse cursor conceptually (simplified center for now)
+            this.stateManager.setViewport({ x, y, zoom: newZoom });
         }
     }
 

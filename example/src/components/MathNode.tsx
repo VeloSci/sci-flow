@@ -7,8 +7,7 @@ export const MathNode = ({ node }: any) => {
             border: node.selected ? '2px solid var(--sf-edge-active, #5a9df8)' : '1px solid var(--sf-node-border, #444)',
             borderRadius: '8px',
             color: 'var(--sf-node-text, #fff)',
-            width: '100%',
-            height: '100%',
+            width: '200px', // Explicit size for standard nodes, preventing 1x1 collapse since foreignObject is 1x1 overflow
             boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
             display: 'flex',
             flexDirection: 'column',
@@ -21,9 +20,19 @@ export const MathNode = ({ node }: any) => {
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <div style={{ background: '#222', padding: '4px', borderRadius: '4px', border: '1px solid #333' }}>In A</div>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ background: '#222', padding: '4px', borderRadius: '4px', border: '1px solid #333' }}>In B</div>
-                    <div style={{ background: '#2e4a2e', padding: '4px', borderRadius: '4px', border: '1px solid #3a5c3a' }}>Out</div>
+                    <div className="sci-flow-port" data-nodeid={node.id} data-portid="out1" 
+                         style={{ 
+                            background: 'var(--sf-port-bg)', 
+                            border: '2px solid var(--sf-port-border)', 
+                            borderRadius: '50%', 
+                            width: '16px', 
+                            height: '16px',
+                            cursor: 'crosshair',
+                            position: 'relative',
+                            right: '-20px' // Pull it outside slightly
+                         }} />
                 </div>
             </div>
         </div>

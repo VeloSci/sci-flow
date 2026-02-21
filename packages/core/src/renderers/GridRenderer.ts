@@ -72,22 +72,16 @@ export class GridRenderer extends BaseRenderer {
       const offsetY = y % scaledSize;
 
       this.ctx.beginPath();
-      this.ctx.strokeStyle = this.options.gridColor;
-      this.ctx.lineWidth = 1;
-
-      // Draw verticals
+      // Draw Intersection dots instead of lines
       for (let i = offsetX; i < rect.width; i += scaledSize) {
-          this.ctx.moveTo(i, 0);
-          this.ctx.lineTo(i, rect.height);
+          for (let j = offsetY; j < rect.height; j += scaledSize) {
+              this.ctx.moveTo(i, j);
+              // Draw a 1.5px radius circle (dot) at the intersection
+              this.ctx.arc(i, j, dotSize, 0, Math.PI * 2);
+          }
       }
       
-      // Draw horizontals
-      for (let i = offsetY; i < rect.height; i += scaledSize) {
-          this.ctx.moveTo(0, i);
-          this.ctx.lineTo(rect.width, i);
-      }
-      
-      this.ctx.stroke();
+      this.ctx.fill();
   }
 
   public getViewportElement(): HTMLElement {
