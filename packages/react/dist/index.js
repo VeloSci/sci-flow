@@ -110,7 +110,6 @@ function SciFlow2({
         Array.from(portalMounts.entries()).map(([nodeId, domElement]) => {
           const nodeData = nodes.find((n) => n.id === nodeId);
           if (!nodeData || !domElement) {
-            console.warn(`SciFlow React wrapper: Missing or invalid portal target for node ${nodeId}`, { nodeData, domElement });
             return null;
           }
           const NodeComponent = typeMap.get(nodeData.type);

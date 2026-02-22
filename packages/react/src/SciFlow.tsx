@@ -51,8 +51,8 @@ export function SciFlow({
                 
                 // Safe guard if node was deleted but portal mount is still unmounting
                 // Or if domElement from vanilla core is invalid
+                // Portals might momentarily lack nodeData during state sync; this is expected.
                 if (!nodeData || !domElement) {
-                    console.warn(`SciFlow React wrapper: Missing or invalid portal target for node ${nodeId}`, { nodeData, domElement });
                     return null; 
                 }
                 
