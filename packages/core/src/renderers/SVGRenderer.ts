@@ -219,6 +219,9 @@ export class SVGRenderer extends BaseRenderer {
         // Display inline-block allows the wrapper to auto-size exactly to the React Component's injected dimensions
         wrapper.style.display = 'inline-block';
         wrapper.style.position = 'relative';
+        wrapper.style.backgroundColor = 'var(--sf-node-bg, #1e293b)';
+        wrapper.style.borderRadius = '8px';
+        wrapper.style.boxShadow = '0 4px 6px rgba(0,0,0,0.3)';
         
         // Auto-size foreignObject hit-box perfectly to the native DOM element inside it
         const ro = new ResizeObserver(() => {

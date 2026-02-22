@@ -251,8 +251,13 @@ export class InteractionManager {
                 this.createSelectionBox(e.clientX, e.clientY);
                 return;
             } else {
-                // Clicked empty space without shift -> clear selection
+                // Clicked empty space without shift -> clear selection AND initiate panning
                 this.stateManager.setSelection([], []);
+                this.isPanning = true;
+                this.container.setPointerCapture(e.pointerId);
+                this.lastPointerPos = { x: e.clientX, y: e.clientY };
+                this.container.style.cursor = 'grabbing';
+                return;
             }
         }
 
