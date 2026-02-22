@@ -15,7 +15,7 @@ export const distanceToLineSegment = (p: Position, a: Position, b: Position): nu
  * Calculates approximate closest distance to a cubic bezier curve using look-up increments.
  * Highly optimized for 60fps hit detection.
  */
-export const distanceToBezier = (p: Position, a: Position, b: Position, controlPointRatio = 0.5): number => {
+export const distanceToBezier = (p: Position, a: Position, b: Position, controlPointRatio = 0.25): number => {
      // A cubic bezier is P = (1-t)^3*P0 + 3(1-t)^2*t*P1 + 3(1-t)t^2*P2 + t^3*P3
      const cx = (b.x - a.x) * controlPointRatio;
      const p1 = { x: a.x + cx, y: a.y };

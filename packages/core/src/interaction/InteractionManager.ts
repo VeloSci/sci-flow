@@ -189,39 +189,48 @@ export class InteractionManager {
 
             // If we got here, we clicked the background. Check Edges first.
             let clickedEdgeId: string | null = null;
-            // 15px logic radius for hit detection (don't scale out of control)
-            const HIT_TOLERANCE = 15 / Math.max(0.1, state.viewport.zoom);
+            
+            // 1. FAST NATIVE PATH: If we clicked exactly on the SVG edge background poly-stroke
+            const targetEl = e.target as Element;
+            const edgePathEl = targetEl.closest('.sci-flow-edge-bg, .sci-flow-edge-fg');
+            if (edgePathEl && edgePathEl.parentElement && edgePathEl.parentElement.id.startsWith('edge-group-')) {
+                clickedEdgeId = edgePathEl.parentElement.id.substring('edge-group-'.length);
+            }
 
-            for (const edge of state.edges.values()) {
-                const sourceNode = state.nodes.get(edge.source);
-                const targetNode = state.nodes.get(edge.target);
-                if (!sourceNode || !targetNode) continue;
-                
-                // Real node dimensions from ResizeObserver state
-                const sW = sourceNode.style?.width || 100;
-                const sH = sourceNode.style?.height || 50;
-                const tH = targetNode.style?.height || 50;
+            // 2. MATHEMATICAL FALLBACK: 15px logic radius for hit detection (e.g. for tiny edges zoomed out)
+            if (!clickedEdgeId) {
+                const HIT_TOLERANCE = 15 / Math.max(0.1, state.viewport.zoom);
 
-                const sourcePos = {
-                   x: sourceNode.position.x + sW,
-                   y: sourceNode.position.y + sH / 2
-                };
-                
-                const targetPos = {
-                   x: targetNode.position.x,
-                   y: targetNode.position.y + tH / 2
-                };
+                for (const edge of state.edges.values()) {
+                    const sourceNode = state.nodes.get(edge.source);
+                    const targetNode = state.nodes.get(edge.target);
+                    if (!sourceNode || !targetNode) continue;
+                    
+                    const sW = sourceNode.style?.width || 100;
+                    const sH = sourceNode.style?.height || 50;
+                    const tH = targetNode.style?.height || 50;
 
-                let dist = Infinity;
-                if (edge.type === 'straight') {
-                    dist = distanceToLineSegment(flowPos, sourcePos, targetPos);
-                } else {
-                    dist = distanceToBezier(flowPos, sourcePos, targetPos);
-                }
-                
-                if (dist < HIT_TOLERANCE) {
-                    clickedEdgeId = edge.id;
-                    break;
+                    const sourcePos = {
+                       x: sourceNode.position.x + sW,
+                       y: sourceNode.position.y + sH / 2
+                    };
+                    
+                    const targetPos = {
+                       x: targetNode.position.x,
+                       y: targetNode.position.y + tH / 2
+                    };
+
+                    let dist = Infinity;
+                    if (edge.type === 'straight') {
+                        dist = distanceToLineSegment(flowPos, sourcePos, targetPos);
+                    } else {
+                        dist = distanceToBezier(flowPos, sourcePos, targetPos);
+                    }
+                    
+                    if (dist < HIT_TOLERANCE) {
+                        clickedEdgeId = edge.id;
+                        break;
+                    }
                 }
             }
 
@@ -622,37 +631,48 @@ export class InteractionManager {
 
         // If no node clicked, check edges
         let clickedEdgeId: string | null = null;
-        const HIT_TOLERANCE = 15 / Math.max(0.1, state.viewport.zoom); // Scaled tolerance
+        
+        // 1. FAST NATIVE PATH
+        const targetEl = e.target as Element;
+        const edgePathEl = targetEl.closest('.sci-flow-edge-bg, .sci-flow-edge-fg');
+        if (edgePathEl && edgePathEl.parentElement && edgePathEl.parentElement.id.startsWith('edge-group-')) {
+            clickedEdgeId = edgePathEl.parentElement.id.substring('edge-group-'.length);
+        }
 
-        for (const edge of state.edges.values()) {
-            const sourceNode = state.nodes.get(edge.source);
-            const targetNode = state.nodes.get(edge.target);
-            if (!sourceNode || !targetNode) continue;
+        // 2. MATHEMATICAL FALLBACK
+        if (!clickedEdgeId) {
+            const HIT_TOLERANCE = 15 / Math.max(0.1, state.viewport.zoom); // Scaled tolerance
 
-            const sW = sourceNode.style?.width || 200;
-            const sH = sourceNode.style?.height || 150;
-            const tH = targetNode.style?.height || 150;
+            for (const edge of state.edges.values()) {
+                const sourceNode = state.nodes.get(edge.source);
+                const targetNode = state.nodes.get(edge.target);
+                if (!sourceNode || !targetNode) continue;
 
-            const sourcePos = {
-               x: sourceNode.position.x + sW,
-               y: sourceNode.position.y + sH / 2
-            };
-            
-            const targetPos = {
-               x: targetNode.position.x,
-               y: targetNode.position.y + tH / 2
-            };
+                const sW = sourceNode.style?.width || 100;
+                const sH = sourceNode.style?.height || 50;
+                const tH = targetNode.style?.height || 50;
 
-            let dist = Infinity;
-            if (edge.type === 'straight') {
-                dist = distanceToLineSegment(flowPos, sourcePos, targetPos);
-            } else {
-                dist = distanceToBezier(flowPos, sourcePos, targetPos);
-            }
-            
-            if (dist < HIT_TOLERANCE) {
-                clickedEdgeId = edge.id;
-                break;
+                const sourcePos = {
+                   x: sourceNode.position.x + sW,
+                   y: sourceNode.position.y + sH / 2
+                };
+                
+                const targetPos = {
+                   x: targetNode.position.x,
+                   y: targetNode.position.y + tH / 2
+                };
+
+                let dist = Infinity;
+                if (edge.type === 'straight') {
+                    dist = distanceToLineSegment(flowPos, sourcePos, targetPos);
+                } else {
+                    dist = distanceToBezier(flowPos, sourcePos, targetPos);
+                }
+                
+                if (dist < HIT_TOLERANCE) {
+                    clickedEdgeId = edge.id;
+                    break;
+                }
             }
         }
 
@@ -700,33 +720,48 @@ export class InteractionManager {
 
         // 2. Check if clicked on an Edge
         let hitEdgeId: string | null = null;
-        const HIT_TOLERANCE = 8 / state.viewport.zoom;
+        
+        // 1. FAST NATIVE PATH
+        const targetEl = e.target as Element;
+        const edgePathEl = targetEl.closest('.sci-flow-edge-bg, .sci-flow-edge-fg');
+        if (edgePathEl && edgePathEl.parentElement && edgePathEl.parentElement.id.startsWith('edge-group-')) {
+            hitEdgeId = edgePathEl.parentElement.id.substring('edge-group-'.length);
+        }
 
-        for (const edge of state.edges.values()) {
-            const sourceNode = state.nodes.get(edge.source);
-            const targetNode = state.nodes.get(edge.target);
-            if (!sourceNode || !targetNode) continue;
+        // 2. MATHEMATICAL FALLBACK
+        if (!hitEdgeId) {
+            const HIT_TOLERANCE = 15 / Math.max(0.1, state.viewport.zoom);
 
-            const sourcePos = {
-               x: sourceNode.position.x + (sourceNode.style?.width || 200),
-               y: sourceNode.position.y + (sourceNode.style?.height || 150) / 2
-            };
-            
-            const targetPos = {
-               x: targetNode.position.x,
-               y: targetNode.position.y + (targetNode.style?.height || 150) / 2
-            };
+            for (const edge of state.edges.values()) {
+                const sourceNode = state.nodes.get(edge.source);
+                const targetNode = state.nodes.get(edge.target);
+                if (!sourceNode || !targetNode) continue;
 
-            let dist = Infinity;
-            if (edge.type === 'straight') {
-                dist = distanceToLineSegment(flowPos, sourcePos, targetPos);
-            } else {
-                dist = distanceToBezier(flowPos, sourcePos, targetPos);
-            }
-            
-            if (dist < HIT_TOLERANCE) {
-                hitEdgeId = edge.id;
-                break;
+                const sW = sourceNode.style?.width || 100;
+                const sH = sourceNode.style?.height || 50;
+                const tH = targetNode.style?.height || 50;
+
+                const sourcePos = {
+                   x: sourceNode.position.x + sW,
+                   y: sourceNode.position.y + sH / 2
+                };
+                
+                const targetPos = {
+                   x: targetNode.position.x,
+                   y: targetNode.position.y + tH / 2
+                };
+
+                let dist = Infinity;
+                if (edge.type === 'straight') {
+                    dist = distanceToLineSegment(flowPos, sourcePos, targetPos);
+                } else {
+                    dist = distanceToBezier(flowPos, sourcePos, targetPos);
+                }
+                
+                if (dist < HIT_TOLERANCE) {
+                    hitEdgeId = edge.id;
+                    break;
+                }
             }
         }
 
