@@ -65,6 +65,7 @@ interface Node {
     position: Position;
     inputs: Record<string, Port>;
     outputs: Record<string, Port>;
+    portConfig?: 'left-right' | 'top-bottom' | 'top-in-bottom-out' | 'bottom-in-top-out' | 'left-in-right-out' | 'right-in-left-out' | 'left-top-in-bottom-right-out' | 'bottom-right-in-left-top-out';
     widgets?: Record<string, NodeWidget>;
     data: Record<string, any>;
     logicCode?: string;
@@ -78,9 +79,14 @@ interface Edge {
     sourceHandle: string;
     target: string;
     targetHandle: string;
-    type?: string;
+    type?: 'straight' | 'bezier' | 'step' | 'smart';
     animated?: boolean;
     selected?: boolean;
+    style?: {
+        lineStyle?: 'solid' | 'dashed' | 'dotted';
+        stroke?: string;
+        strokeWidth?: number;
+    };
     data?: Record<string, any>;
 }
 interface FlowState {
@@ -96,6 +102,12 @@ interface FlowState {
         x?: number;
         y?: number;
     }[];
+    defaultEdgeType?: 'straight' | 'bezier' | 'step' | 'smart';
+    defaultEdgeStyle?: {
+        lineStyle?: 'solid' | 'dashed' | 'dotted';
+        stroke?: string;
+        strokeWidth?: number;
+    };
 }
 type OnNodesChange = (nodes: Node[]) => void;
 type OnEdgesChange = (edges: Edge[]) => void;
@@ -150,6 +162,8 @@ declare class StateManager {
     addNode(node: Node): void;
     setDraftEdge(sourceNodeId: string, sourcePortId: string, targetPosition: Position): void;
     clearDraftEdge(): void;
+    setDefaultEdgeType(type: 'straight' | 'bezier' | 'step' | 'smart'): void;
+    setDefaultEdgeStyle(style: any): void;
     setSmartGuides(guides: {
         x?: number;
         y?: number;
@@ -198,6 +212,16 @@ declare class SciFlow {
     private applyThemeVariables;
     setNodes(nodes: Node[]): void;
     setEdges(edges: Edge[]): void;
+    addNode(node: Node): void;
+    removeNode(id: string): void;
+    addEdge(edge: Edge): void;
+    removeEdge(id: string): void;
+    getState(): FlowState;
+    forceUpdate(): void;
+    setDefaultEdgeType(type: 'straight' | 'bezier' | 'step' | 'smart'): void;
+    setDefaultEdgeStyle(style: any): void;
+    subscribe(listener: (state: FlowState) => void): () => void;
+    updateNodePosition(id: string, x: number, y: number): void;
     fitView(padding?: number): void;
     centerNode(id: string): void;
     toJSON(): string;
@@ -251,11 +275,15 @@ declare class SVGRenderer extends BaseRenderer {
     private styleEl;
     private routerWorker;
     private pendingRoutes;
-    private routerIdCounter;
+    routerIdCounter: number;
     private routeCache;
     private routingHashCache;
+    private nodeManager;
+    private edgeManager;
     constructor(options: RendererOptions);
     render(state: FlowState, registry: Map<string, any>): void;
+    private renderDraftEdge;
+    private getPortAnchor;
     getViewportElement(): SVGElement;
     destroy(): void;
 }
