@@ -173,6 +173,10 @@ export class SVGRenderer extends BaseRenderer {
     this.svg.style.width = '100%';
     this.svg.style.height = '100%';
     this.svg.style.display = 'block';
+    this.svg.style.position = 'absolute';
+    this.svg.style.top = '0';
+    this.svg.style.left = '0';
+    this.svg.style.zIndex = '1';
     this.svg.setAttribute('class', 'sci-flow-svg-renderer');
 
     // Create groups for layers

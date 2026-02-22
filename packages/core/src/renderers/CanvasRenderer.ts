@@ -16,6 +16,10 @@ export class CanvasRenderer extends BaseRenderer {
     this.canvas.style.width = '100%';
     this.canvas.style.height = '100%';
     this.canvas.style.display = 'block';
+    this.canvas.style.position = 'absolute';
+    this.canvas.style.top = '0';
+    this.canvas.style.left = '0';
+    this.canvas.style.zIndex = '1';
     this.canvas.classList.add('sci-flow-canvas-renderer');
     
     this.ctx = this.canvas.getContext('2d');
