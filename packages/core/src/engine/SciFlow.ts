@@ -12,6 +12,8 @@ export interface SciFlowOptions {
   renderer?: 'svg' | 'canvas' | 'auto';
   autoSwitchThreshold?: number; // Node count where auto switch to canvas occurs
   theme?: Partial<Theme> | 'light' | 'dark' | 'system';
+  minZoom?: number;
+  maxZoom?: number;
 }
 
 export class SciFlow {
@@ -43,7 +45,9 @@ export class SciFlow {
 
     this.interactionManager = new InteractionManager({
         container: this.container,
-        stateManager: this.stateManager
+        stateManager: this.stateManager,
+        minZoom: this.options.minZoom,
+        maxZoom: this.options.maxZoom
     });
     
     this.gridRenderer = new GridRenderer({ container: this.container });

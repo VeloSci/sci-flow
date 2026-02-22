@@ -92,6 +92,8 @@ function App() {
             initialEdges={initialEdges}
             renderer="auto"
             theme={themeMode}
+            minZoom={0.2}
+            maxZoom={4}
             nodeTypes={[MathNode]}
             onNodeContextMenu={(e: any, n: any) => { e.preventDefault(); alert(`Right clicked ${n.id}`); }}
             onInit={(engineInstance: any) => setEngine(engineInstance)}

@@ -9,6 +9,8 @@ const props = defineProps<{
     onNodeContextMenu?: UseSciFlowProps['onNodeContextMenu'];
     onEdgeContextMenu?: UseSciFlowProps['onEdgeContextMenu'];
     onPaneContextMenu?: UseSciFlowProps['onPaneContextMenu'];
+    minZoom?: UseSciFlowProps['minZoom'];
+    maxZoom?: UseSciFlowProps['maxZoom'];
     
     // An object containing Vue components representing node types
     nodeTypes?: Record<string, any>; 

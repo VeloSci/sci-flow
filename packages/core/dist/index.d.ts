@@ -176,6 +176,8 @@ interface SciFlowOptions {
     renderer?: 'svg' | 'canvas' | 'auto';
     autoSwitchThreshold?: number;
     theme?: Partial<Theme> | 'light' | 'dark' | 'system';
+    minZoom?: number;
+    maxZoom?: number;
 }
 declare class SciFlow {
     private container;
