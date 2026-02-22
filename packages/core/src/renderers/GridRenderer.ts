@@ -58,11 +58,14 @@ export class GridRenderer extends BaseRenderer {
       
       this.ctx.clearRect(0, 0, rect.width, rect.height);
       
-      // Calculate scaled grid size
-      const scaledSize = this.options.gridSize * zoom;
+      // Adaptive grid: if scaled size gets too small, step by larger increments
+      // This immediately solves the O(N^2) zoom-out performance crash
+      let stepMultiplier = 1;
+      while (this.options.gridSize * zoom * stepMultiplier < 15) {
+          stepMultiplier *= 2; // Keep doubling the grid gap until it's visually pleasing
+      }
       
-      // Don't draw if grid is too small
-      if (scaledSize < 4) return;
+      const scaledSize = this.options.gridSize * zoom * stepMultiplier;
 
       const colorPrimary = getComputedStyle(this.container).getPropertyValue('--sf-grid-dot').trim() || '#555';
       this.ctx.fillStyle = colorPrimary;
@@ -71,17 +74,12 @@ export class GridRenderer extends BaseRenderer {
       const offsetX = x % scaledSize;
       const offsetY = y % scaledSize;
 
-      this.ctx.beginPath();
-      // Draw Intersection dots instead of lines
+      // Draw Intersection dots using high-performance fillRect instead of heavy mathematical arcs
       for (let i = offsetX; i < rect.width; i += scaledSize) {
           for (let j = offsetY; j < rect.height; j += scaledSize) {
-              this.ctx.moveTo(i, j);
-              // Draw a 1.5px radius circle (dot) at the intersection
-              this.ctx.arc(i, j, dotSize, 0, Math.PI * 2);
+              this.ctx.fillRect(i, j, dotSize, dotSize);
           }
       }
-      
-      this.ctx.fill();
   }
 
   public getViewportElement(): HTMLElement {
