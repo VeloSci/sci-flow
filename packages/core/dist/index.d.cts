@@ -248,6 +248,7 @@ declare class SVGRenderer extends BaseRenderer {
     private svg;
     private nodesGroup;
     private edgesGroup;
+    private styleEl;
     private routerWorker;
     private pendingRoutes;
     private routerIdCounter;

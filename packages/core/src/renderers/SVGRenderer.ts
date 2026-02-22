@@ -145,6 +145,9 @@ export class SVGRenderer extends BaseRenderer {
   private nodesGroup: SVGGElement;
   private edgesGroup: SVGGElement;
   
+  // Injected CSS for hoverable ports
+  private styleEl: HTMLStyleElement;
+  
   // Async Routing Support
   private routerWorker: Worker;
   private pendingRoutes: Map<string, (path: string) => void> = new Map();
@@ -178,6 +181,55 @@ export class SVGRenderer extends BaseRenderer {
     this.svg.style.left = '0';
     this.svg.style.zIndex = '1';
     this.svg.setAttribute('class', 'sci-flow-svg-renderer');
+
+    // Inject global styles for node hover interactions
+    this.styleEl = document.createElement('style');
+    this.styleEl.textContent = `
+      .sci-flow-node-wrapper {
+        position: relative;
+        display: inline-block;
+        background-color: var(--sf-node-bg, #1e293b);
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+      }
+      .sci-flow-port {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 16px;
+        height: 16px;
+        background-color: var(--sf-port-bg, #475569);
+        border: 2px solid var(--sf-port-border, #94a3b8);
+        border-radius: 50%;
+        cursor: crosshair;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease, transform 0.1s ease;
+        z-index: 10;
+      }
+      .sci-flow-port:hover {
+        transform: translateY(-50%) scale(1.2);
+        background-color: var(--sf-edge-active, #00f2ff);
+        border-color: #fff;
+      }
+      .sci-flow-node-wrapper:hover .sci-flow-port {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      .sci-flow-port-in {
+        left: -8px;
+      }
+      .sci-flow-port-out {
+        right: -8px;
+      }
+      .sci-flow-port[data-portid="in1"] {
+        /* Default left port */
+      }
+      .sci-flow-port[data-portid="out1"] {
+        /* Default right port */
+      }
+    `;
+    document.head.appendChild(this.styleEl);
 
     // Create groups for layers
     this.edgesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -221,11 +273,7 @@ export class SVGRenderer extends BaseRenderer {
 
         const wrapper = document.createElement('div');
         // Display inline-block allows the wrapper to auto-size exactly to the React Component's injected dimensions
-        wrapper.style.display = 'inline-block';
-        wrapper.style.position = 'relative';
-        wrapper.style.backgroundColor = 'var(--sf-node-bg, #1e293b)';
-        wrapper.style.borderRadius = '8px';
-        wrapper.style.boxShadow = '0 4px 6px rgba(0,0,0,0.3)';
+        wrapper.className = 'sci-flow-node-wrapper';
         
         // Auto-size foreignObject hit-box perfectly to the native DOM element inside it
         const ro = new ResizeObserver(() => {
@@ -252,11 +300,25 @@ export class SVGRenderer extends BaseRenderer {
             const el = nodeDef.renderHTML(node);
             wrapper.appendChild(el);
         } else {
-            wrapper.innerHTML = `<div style="background: #333; color: white; padding: 10px; border-radius: 6px;">
+            wrapper.innerHTML = `<div style="background: var(--sf-node-bg, #333); color: white; padding: 10px; border-radius: 6px; box-sizing: border-box; width: 100%; height: 100%;">
               <strong>${node.type}</strong><br/>
               <small>${node.id}</small>
             </div>`;
         }
+
+        // Inject generic hoverable ports
+        const portIn = document.createElement('div');
+        portIn.className = 'sci-flow-port sci-flow-port-in';
+        portIn.dataset.nodeid = node.id;
+        portIn.dataset.portid = 'in1';
+
+        const portOut = document.createElement('div');
+        portOut.className = 'sci-flow-port sci-flow-port-out';
+        portOut.dataset.nodeid = node.id;
+        portOut.dataset.portid = 'out1';
+
+        wrapper.appendChild(portIn);
+        wrapper.appendChild(portOut);
 
         foreignObj.appendChild(wrapper);
         g.appendChild(foreignObj);
@@ -487,5 +549,6 @@ export class SVGRenderer extends BaseRenderer {
 
   public destroy(): void {
     this.svg.remove();
+    this.styleEl.remove();
   }
 }

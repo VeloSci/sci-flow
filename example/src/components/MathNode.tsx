@@ -22,17 +22,6 @@ export const MathNode = ({ node }: any) => {
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ background: '#222', padding: '4px', borderRadius: '4px', border: '1px solid #333' }}>In B</div>
-                    <div className="sci-flow-port" data-nodeid={node.id} data-portid="out1" 
-                         style={{ 
-                            background: 'var(--sf-port-bg)', 
-                            border: '2px solid var(--sf-port-border)', 
-                            borderRadius: '50%', 
-                            width: '16px', 
-                            height: '16px',
-                            cursor: 'crosshair',
-                            position: 'relative',
-                            right: '-20px' // Pull it outside slightly
-                         }} />
                 </div>
             </div>
         </div>
