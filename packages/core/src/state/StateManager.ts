@@ -46,6 +46,8 @@ export class StateManager {
       nodes: new Map(),
       edges: new Map(),
       viewport: { x: 0, y: 0, zoom: 1 },
+      defaultEdgeType: 'bezier',
+      defaultEdgeStyle: { lineStyle: 'solid' },
       ...initialState
     };
   }
@@ -132,6 +134,17 @@ export class StateManager {
 
   public clearDraftEdge() {
       this.state.draftEdge = undefined;
+      this.notify();
+  }
+
+  // --- Default Styling ---
+  public setDefaultEdgeType(type: 'straight' | 'bezier' | 'step' | 'smart') {
+      this.state.defaultEdgeType = type;
+      this.notify();
+  }
+
+  public setDefaultEdgeStyle(style: any) {
+      this.state.defaultEdgeStyle = { ...this.state.defaultEdgeStyle, ...style };
       this.notify();
   }
 
