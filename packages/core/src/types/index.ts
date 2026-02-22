@@ -79,6 +79,7 @@ export interface Node {
   // Dynamic port routing
   inputs: Record<string, Port>;
   outputs: Record<string, Port>;
+  portConfig?: 'left-right' | 'top-bottom' | 'top-in-bottom-out' | 'bottom-in-top-out' | 'left-in-right-out' | 'right-in-left-out' | 'left-top-in-bottom-right-out' | 'bottom-right-in-left-top-out';
   
   // Custom interactive widgets (Blender-like controls)
   widgets?: Record<string, NodeWidget>;
@@ -100,9 +101,14 @@ export interface Edge {
   sourceHandle: string; // Port ID
   target: string; // Node ID
   targetHandle: string; // Port ID
-  type?: string;
+  type?: 'straight' | 'bezier' | 'step' | 'smart';
   animated?: boolean;
   selected?: boolean;
+  style?: {
+    lineStyle?: 'solid' | 'dashed' | 'dotted';
+    stroke?: string;
+    strokeWidth?: number;
+  };
   data?: Record<string, any>;
 }
 
@@ -112,6 +118,12 @@ export interface FlowState {
   viewport: ViewportState;
   draftEdge?: { sourceNodeId: string; sourcePortId: string; targetPosition: Position };
   smartGuides?: { x?: number, y?: number }[];
+  defaultEdgeType?: 'straight' | 'bezier' | 'step' | 'smart';
+  defaultEdgeStyle?: {
+    lineStyle?: 'solid' | 'dashed' | 'dotted';
+    stroke?: string;
+    strokeWidth?: number;
+  };
 }
 
 export type OnNodesChange = (nodes: Node[]) => void;

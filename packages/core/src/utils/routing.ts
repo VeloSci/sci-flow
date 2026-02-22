@@ -7,19 +7,37 @@ export function getSmartOrthogonalPath(source: Position, target: Position, obsta
     const xs = new Set<number>();
     const ys = new Set<number>();
     
-    const startX = source.x + padding;
-    const endX = target.x - padding;
+    const startX = source.x;
+    const startY = source.y;
+    const endX = target.x;
+    const endY = target.y;
     
-    xs.add(source.x); xs.add(startX); xs.add(target.x); xs.add(endX);
-    ys.add(source.y); ys.add(target.y);
+    xs.add(startX); xs.add(endX);
+    ys.add(startY); ys.add(endY);
+
+    // Add mid-points to allow centered turns (Image 2 style)
+    xs.add(startX + (endX - startX) / 2);
+    ys.add(startY + (endY - startY) / 2);
+
+    // Add source/target port "exit" points to encourage orthogonal start/end
+    xs.add(startX + padding); xs.add(startX - padding);
+    ys.add(startY + padding); ys.add(startY - padding);
+    xs.add(endX + padding);   xs.add(endX - padding);
+    ys.add(endY + padding);   ys.add(endY - padding);
     
     for (const obs of obstacles) {
+        xs.add(obs.x);
+        xs.add(obs.x + obs.width);
         xs.add(obs.x - padding);
         xs.add(obs.x + obs.width + padding);
+        
+        ys.add(obs.y);
+        ys.add(obs.y + obs.height);
         ys.add(obs.y - padding);
         ys.add(obs.y + obs.height + padding);
     }
     
+    // Filter and sort
     const xGrid = Array.from(xs).sort((a, b) => a - b);
     const yGrid = Array.from(ys).sort((a, b) => a - b);
     
@@ -56,12 +74,22 @@ export function getSmartOrthogonalPath(source: Position, target: Position, obsta
     const getIdx = (xi: number, yi: number) => yi * xGrid.length + xi;
     const getCoords = (idx: number) => ({ xi: idx % xGrid.length, yi: Math.floor(idx / xGrid.length) });
     
-    let startIdx = 0; let endIdx = 0;
-    // Find closest grid indices for source and target
-    for(let i=0; i<xGrid.length; i++) {
-        if (xGrid[i] === source.x) startIdx = getIdx(i, yGrid.indexOf(source.y));
-        if (xGrid[i] === target.x) endIdx = getIdx(i, yGrid.indexOf(target.y));
+    const startYIdx = yGrid.indexOf(startY);
+    const endYIdx = yGrid.indexOf(endY);
+    const startXIdx = xGrid.indexOf(startX);
+    const endXIdx = xGrid.indexOf(endX);
+
+    const fallbackPath = (s: Position, t: Position) => {
+        const midX = s.x + (t.x - s.x) / 2;
+        return `M ${s.x},${s.y} L ${midX},${s.y} L ${midX},${t.y} L ${t.x},${t.y}`;
+    };
+
+    if (startXIdx === -1 || startYIdx === -1 || endXIdx === -1 || endYIdx === -1) {
+        return fallbackPath(source, target);
     }
+
+    const startIdx = getIdx(startXIdx, startYIdx);
+    const endIdx = getIdx(endXIdx, endYIdx);
 
     const openSet = new Set<number>([startIdx]);
     const closedSet = new Set<number>();
@@ -73,7 +101,7 @@ export function getSmartOrthogonalPath(source: Position, target: Position, obsta
     fScore.set(startIdx, Math.abs(target.x - source.x) + Math.abs(target.y - source.y));
 
     while (openSet.size > 0) {
-        // Get lowest fScore
+        // ... (existing search logic) ...
         let current = -1;
         let lowestF = Infinity;
         for (const node of openSet) {
@@ -83,27 +111,27 @@ export function getSmartOrthogonalPath(source: Position, target: Position, obsta
 
         if (current === endIdx) {
             // Reconstruct path
-            const path: Point[] = [];
+            const pathPoints: Point[] = [];
             let curr = current;
-            while (cameFrom.has(curr)) {
+            while (curr !== startIdx) {
                 const { xi, yi } = getCoords(curr);
-                path.unshift({ x: xGrid[xi], y: yGrid[yi] });
+                pathPoints.unshift({ x: xGrid[xi], y: yGrid[yi] });
                 curr = cameFrom.get(curr)!;
             }
-            path.unshift({ x: source.x, y: source.y });
+            pathPoints.unshift({ x: source.x, y: source.y });
             
-            // Clean up straight lines (remove collinear points)
-            const cleanPath = [path[0]];
-            for (let i = 1; i < path.length - 1; i++) {
-                const prev = path[i-1];
-                const next = path[i+1];
-                const p = path[i];
+            // Clean up straight lines
+            const cleanPath = [pathPoints[0]];
+            for (let i = 1; i < pathPoints.length - 1; i++) {
+                const prev = pathPoints[i-1];
+                const next = pathPoints[i+1];
+                const p = pathPoints[i];
                 if ((prev.x === p.x && p.x === next.x) || (prev.y === p.y && p.y === next.y)) {
-                    continue; // Collinear
+                    continue;
                 }
                 cleanPath.push(p);
             }
-            cleanPath.push(path[path.length - 1]);
+            cleanPath.push(pathPoints[pathPoints.length - 1]);
 
             return `M ${cleanPath.map(p => `${p.x},${p.y}`).join(' L ')}`;
         }
@@ -114,7 +142,7 @@ export function getSmartOrthogonalPath(source: Position, target: Position, obsta
         const { xi, yi } = getCoords(current);
         const p1 = { x: xGrid[xi], y: yGrid[yi] };
 
-        // Neighbors (up, down, left, right)
+        // Neighbors
         const neighbors = [];
         if (xi > 0) neighbors.push({ xi: xi - 1, yi });
         if (xi < xGrid.length - 1) neighbors.push({ xi: xi + 1, yi });
@@ -127,29 +155,28 @@ export function getSmartOrthogonalPath(source: Position, target: Position, obsta
             
             const p2 = { x: xGrid[neighbor.xi], y: yGrid[neighbor.yi] };
             
-            // Directional penalties to encourage simple paths
+            if (isLineBlocked(p1, p2)) continue;
+
             let penalty = 0;
             if (cameFrom.has(current)) {
-               const prev = getCoords(cameFrom.get(current)!);
-               const wasHorizontal = prev.yi === yi;
+               const prevIdx = cameFrom.get(current)!;
+               const prevCoords = getCoords(prevIdx);
+               const wasHorizontal = prevCoords.yi === yi;
                const isHorizontal = neighbor.yi === yi;
-               if (wasHorizontal !== isHorizontal) penalty += 50; // Penalty for turning
+               if (wasHorizontal !== isHorizontal) penalty += 100; // Increased penalty for turning
             }
-            
-            if (isLineBlocked(p1, p2)) continue; // Blocked
 
-            const tentativeG = gScore.get(current)! + Math.abs(p2.x - p1.x) + Math.abs(p2.y - p1.y) + penalty;
+            const dist = Math.abs(p2.x - p1.x) + Math.abs(p2.y - p1.y);
+            const tentativeG = (gScore.get(current) ?? 0) + dist + penalty;
 
-            if (!openSet.has(nIdx)) openSet.add(nIdx);
-            else if (tentativeG >= (gScore.get(nIdx) ?? Infinity)) continue;
-
-            cameFrom.set(nIdx, current);
-            gScore.set(nIdx, tentativeG);
-            fScore.set(nIdx, tentativeG + Math.abs(target.x - p2.x) + Math.abs(target.y - p2.y));
+            if (!openSet.has(nIdx) || tentativeG < (gScore.get(nIdx) ?? Infinity)) {
+                cameFrom.set(nIdx, current);
+                gScore.set(nIdx, tentativeG);
+                fScore.set(nIdx, tentativeG + Math.abs(target.x - p2.x) + Math.abs(target.y - p2.y));
+                openSet.add(nIdx);
+            }
         }
     }
 
-    // Fallback if no path found (drawn straight through everything)
-    const midX = source.x + (target.x - source.x) / 2;
-    return `M ${source.x},${source.y} L ${midX},${source.y} L ${midX},${target.y} L ${target.x},${target.y}`;
+    return fallbackPath(source, target);
 }
