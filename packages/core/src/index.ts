@@ -1,6 +1,6 @@
 export * from './types';
 export * from './theme/defaultThemes';
-export * from './state/StateManager';
+export { StateManager, type NodeDefinition } from './state/StateManager';
 export * from './engine/SciFlow';
 export * from './plugins/Minimap';
 export * from './renderers/BaseRenderer';

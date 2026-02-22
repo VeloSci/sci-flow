@@ -185,6 +185,46 @@ export class SciFlow {
     this.stateManager.setEdges(edges);
   }
 
+  public addNode(node: Node) {
+    this.stateManager.addNode(node);
+  }
+
+  public removeNode(id: string) {
+    this.stateManager.removeNode(id);
+  }
+
+  public addEdge(edge: Edge) {
+    this.stateManager.addEdge(edge);
+  }
+
+  public removeEdge(id: string) {
+    this.stateManager.removeEdge(id);
+  }
+
+  public getState(): FlowState {
+    return this.stateManager.getState();
+  }
+
+  public forceUpdate() {
+    this.stateManager.forceUpdate();
+  }
+
+  public setDefaultEdgeType(type: 'straight' | 'bezier' | 'step' | 'smart') {
+    this.stateManager.setDefaultEdgeType(type);
+  }
+
+  public setDefaultEdgeStyle(style: any) {
+    this.stateManager.setDefaultEdgeStyle(style);
+  }
+
+  public subscribe(listener: (state: FlowState) => void): () => void {
+    return this.stateManager.subscribe(listener);
+  }
+
+  public updateNodePosition(id: string, x: number, y: number) {
+    this.stateManager.updateNodePosition(id, x, y);
+  }
+
   public fitView(padding = 50) {
     const state = this.stateManager.getState();
     if (state.nodes.size === 0) return;
