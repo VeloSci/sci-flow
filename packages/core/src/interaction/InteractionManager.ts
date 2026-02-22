@@ -137,6 +137,7 @@ export class InteractionManager {
                 this.draftSourceNodeId = portEl.dataset.nodeid;
                 this.draftSourcePortId = portEl.dataset.portid;
                 this.container.setPointerCapture(e.pointerId);
+                this.container.classList.add('sci-flow-dragging-edge');
                 return;
             }
         }
@@ -502,6 +503,7 @@ export class InteractionManager {
 
             this.draftSourceNodeId = null;
             this.draftSourcePortId = null;
+            this.container.classList.remove('sci-flow-dragging-edge');
             if (this.container.hasPointerCapture(e.pointerId)) {
                 this.container.releasePointerCapture(e.pointerId);
             }

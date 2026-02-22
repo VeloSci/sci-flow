@@ -212,7 +212,8 @@ export class SVGRenderer extends BaseRenderer {
         background-color: var(--sf-edge-active, #00f2ff);
         border-color: #fff;
       }
-      .sci-flow-node-wrapper:hover .sci-flow-port {
+      .sci-flow-node-wrapper:hover .sci-flow-port,
+      .sci-flow-dragging-edge .sci-flow-port {
         opacity: 1;
         pointer-events: auto;
       }
