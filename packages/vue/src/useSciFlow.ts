@@ -26,10 +26,7 @@ export function useSciFlow(options: UseSciFlowProps = {}) {
       ...options
     });
 
-    if (nodes.value.length) engineRef.value.setNodes(nodes.value);
-    if (edges.value.length) engineRef.value.setEdges(edges.value);
-
-    // Subscribe to internal engine dispatched events for Vue sync
+    // CRITICAL: Subscribe to engine events BEFORE setting initial nodes/edges
     const stateManager = (engineRef.value as any).stateManager;
     if (stateManager) {
         stateManager.onNodesChange = (newNodes: Node[]) => { nodes.value = newNodes; };
@@ -37,7 +34,6 @@ export function useSciFlow(options: UseSciFlowProps = {}) {
         
         stateManager.onNodeMount = (nodeId: string, container: HTMLElement) => {
             portalMounts.value.set(nodeId, container);
-            // manually trigger reactivity for maps in shallow/ref arrays if needed, though Maps usually need new assignment in Vue or a reactive map wrapper
             portalMounts.value = new Map(portalMounts.value); 
         };
         
@@ -46,11 +42,14 @@ export function useSciFlow(options: UseSciFlowProps = {}) {
             portalMounts.value = new Map(portalMounts.value);
         };
         
-        // Pass through Context Menu events
         if (options.onNodeContextMenu) stateManager.onNodeContextMenu = options.onNodeContextMenu;
         if (options.onEdgeContextMenu) stateManager.onEdgeContextMenu = options.onEdgeContextMenu;
         if (options.onPaneContextMenu) stateManager.onPaneContextMenu = options.onPaneContextMenu;
     }
+
+    if (nodes.value.length) engineRef.value.setNodes(nodes.value);
+    if (edges.value.length) engineRef.value.setEdges(edges.value);
+
   });
 
   onBeforeUnmount(() => {

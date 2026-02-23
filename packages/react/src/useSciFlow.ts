@@ -32,21 +32,13 @@ export function useSciFlow({ initialNodes = [], initialEdges = [], renderer = 'a
       ...options
     });
 
-    engineRef.current.setNodes(initialNodes);
-    engineRef.current.setEdges(initialEdges);
-    
-    if (onInit) {
-        onInit(engineRef.current);
-    }
-    
-    // Subscribe to internal engine dispatched events for React sync
+    // CRITICAL: Subscribe to engine events BEFORE setting initial nodes/edges
     const stateManager = (engineRef.current as any).stateManager;
     if (stateManager) {
         stateManager.onNodesChange = (newNodes: Node[]) => setNodesState(newNodes);
         stateManager.onEdgesChange = (newEdges: Edge[]) => setEdgesState(newEdges);
         
         stateManager.onNodeMount = (nodeId: string, container: HTMLElement) => {
-             // We MUST use React functional state updates to avoid missing sync queues
              setPortalMounts(prev => {
                  if (prev.get(nodeId) === container) return prev;
                  const newMap = new Map(prev);
@@ -64,6 +56,14 @@ export function useSciFlow({ initialNodes = [], initialEdges = [], renderer = 'a
              });
         };
     }
+
+    engineRef.current.setNodes(initialNodes);
+    engineRef.current.setEdges(initialEdges);
+    
+    if (onInit) {
+        onInit(engineRef.current);
+    }
+
 
     return () => {
       engineRef.current?.destroy();

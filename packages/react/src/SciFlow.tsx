@@ -23,16 +23,21 @@ export function SciFlow({
     // We already bypass `renderHTML` entirely when building React wrappers because 
     // we use `portalMounts` instead! The Core will just render an empty `<foreignObject>` Wrapper.
     
-    const { containerRef, portalMounts, nodes } = useSciFlow(useSciFlowProps);
+    const { containerRef, portalMounts, nodes, engine } = useSciFlow({ ...useSciFlowProps, nodeTypes });
 
     // Render registered node Types dynamically mapping Node data to React components
     // We need a dictionary of React components to render.
     const typeMap = useMemo(() => {
         const map = new Map<string, React.FC<any>>();
         nodeTypes.forEach(Comp => {
-            // Assume the Component defines a static `nodeType` string property 
-            const typeName = (Comp as any).nodeType || Comp.name;
-            map.set(typeName, Comp);
+            if ((Comp as any).nodeType) {
+                map.set((Comp as any).nodeType, Comp);
+            }
+            if (Comp.name) {
+                map.set(Comp.name, Comp);
+                // Normalization for common lowercase prototypes (e.g. GeneratorNode -> generator)
+                map.set(Comp.name.toLowerCase().replace('node', ''), Comp);
+            }
         });
         return map;
     }, [nodeTypes]);
@@ -48,29 +53,15 @@ export function SciFlow({
             {/* Portals for mounting React UI into the agnostic vanilla DOM nodes */}
             {Array.from(portalMounts.entries()).map(([nodeId, domElement]) => {
                 const nodeData = nodes.find(n => n.id === nodeId);
-                
-                // Safe guard if node was deleted but portal mount is still unmounting
-                // Or if domElement from vanilla core is invalid
-                // Portals might momentarily lack nodeData during state sync; this is expected.
-                if (!nodeData || !domElement) {
-                    return null; 
-                }
+                if (!nodeData || !domElement) return null;
                 
                 const NodeComponent = typeMap.get(nodeData.type);
                 
-                // If a React Component is registered for this node type, render it via Portal
                 if (NodeComponent) {
-                    return createPortal(<NodeComponent key={nodeId} node={nodeData} />, domElement as Element);
+                    return createPortal(<NodeComponent key={nodeId} node={nodeData} engine={engine} />, domElement as Element);
                 }
 
-                // Fallback UI inside React namespace if type is unmapped but exists in state
-                return createPortal(
-                    <div key={nodeId} style={{ background: '#333', color: 'white', padding: '10px', borderRadius: '6px', width: '100%', height: '100%' }}>
-                        <strong>{nodeData.type}</strong><br/>
-                        <small>{nodeId}</small>
-                    </div>, 
-                    domElement as Element
-                );
+                return null;
             })}
 
             {/* Optional minimap, context menus, or overlays user passes as children */}
