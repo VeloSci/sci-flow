@@ -54,20 +54,42 @@ export class EdgeManager {
         bgPath.style.pointerEvents = 'stroke';
         
         const fgPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        fgPath.id = `edge-path-${edge.id}`;
         fgPath.setAttribute('class', 'sci-flow-edge-fg');
         fgPath.setAttribute('fill', 'none');
         fgPath.style.pointerEvents = 'none';
+
+        const overlayPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        overlayPath.setAttribute('class', 'sci-flow-edge-overlay');
+        overlayPath.setAttribute('fill', 'none');
+        overlayPath.style.pointerEvents = 'none';
+        overlayPath.style.display = 'none';
+
+        const symbolsText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        symbolsText.setAttribute('class', 'sci-flow-edge-symbols');
+        symbolsText.style.display = 'none';
+        symbolsText.style.pointerEvents = 'none';
+        
+        const textPath = document.createElementNS('http://www.w3.org/2000/svg', 'textPath');
+        textPath.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', `#edge-path-${edge.id}`);
+        textPath.setAttribute('startOffset', '0%');
+        textPath.textContent = '» » » » » » » » » » » » » » » » » » » »';
+        symbolsText.appendChild(textPath);
         
         const sourcePort = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         sourcePort.setAttribute('class', 'sci-flow-port-source');
-        sourcePort.setAttribute('r', '5');
+        sourcePort.setAttribute('r', '3');
+        sourcePort.style.pointerEvents = 'none';
         
         const targetPort = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
         targetPort.setAttribute('class', 'sci-flow-port-target');
-        targetPort.setAttribute('r', '5');
+        targetPort.setAttribute('r', '3');
+        targetPort.style.pointerEvents = 'none';
 
         group.appendChild(bgPath);
         group.appendChild(fgPath);
+        group.appendChild(overlayPath);
+        group.appendChild(symbolsText);
         group.appendChild(sourcePort);
         group.appendChild(targetPort);
         
@@ -76,13 +98,16 @@ export class EdgeManager {
     private updateEdgeVisuals(group: SVGGElement, edge: Edge, sourcePos: any, targetPos: any, routingMode: string, obstacles: any[]): void {
         const bgPath = group.querySelector('.sci-flow-edge-bg') as SVGPathElement;
         const fgPath = group.querySelector('.sci-flow-edge-fg') as SVGPathElement;
+        const overlayPath = group.querySelector('.sci-flow-edge-overlay') as SVGPathElement;
+        const symbolsText = group.querySelector('.sci-flow-edge-symbols') as SVGTextElement;
         const sourcePort = group.querySelector('.sci-flow-port-source') as SVGCircleElement;
         const targetPort = group.querySelector('.sci-flow-port-target') as SVGCircleElement;
 
         [sourcePort, targetPort].forEach(p => {
             p.style.fill = 'var(--sf-bg)';
             p.style.stroke = edge.selected ? 'var(--sf-edge-active)' : 'var(--sf-edge-line)';
-            p.style.strokeWidth = '2px';
+            p.style.strokeWidth = '1.5px';
+            p.style.opacity = '0.6';
         });
 
         sourcePort.setAttribute('cx', `${sourcePos.x}`);
@@ -94,22 +119,63 @@ export class EdgeManager {
         const customLineStyle = edge.style?.lineStyle || 'solid';
         const customStroke = edge.style?.stroke;
         const customStrokeWidth = edge.style?.strokeWidth;
+        const animType = (edge.style as any)?.animationType || 'dash';
 
         fgPath.style.stroke = customStroke || (edge.selected ? 'var(--sf-edge-active)' : 'var(--sf-edge-line)');
         fgPath.style.strokeWidth = customStrokeWidth ? `${customStrokeWidth}px` : (edge.selected ? '3px' : '2px');
+        
+        fgPath.classList.remove('sci-flow-edge-animated-pulse', 'sci-flow-edge-animated-arrows', 'sci-flow-edge-animated-symbols');
+        overlayPath.style.display = 'none';
+        if (symbolsText) {
+            symbolsText.style.display = 'none';
+            symbolsText.setAttribute('dominant-baseline', 'middle');
+            symbolsText.setAttribute('alignment-baseline', 'middle');
+        }
+        
+        fgPath.style.animation = '';
 
         if (edge.animated) {
-            fgPath.style.strokeDasharray = '5, 5';
-            fgPath.style.animation = 'sf-dash-anim 1s linear infinite';
-        } else if (customLineStyle === 'dashed') {
-            fgPath.style.strokeDasharray = '8, 8';
-            fgPath.style.animation = 'none';
-        } else if (customLineStyle === 'dotted') {
-            fgPath.style.strokeDasharray = '2, 4';
-            fgPath.style.animation = 'none';
+            if (animType === 'pulse') {
+                fgPath.classList.add('sci-flow-edge-animated-pulse');
+                fgPath.style.strokeDasharray = 'none';
+            } else if (animType === 'arrows') {
+                fgPath.classList.add('sci-flow-edge-animated-arrows');
+            } else if (animType === 'symbols') {
+                if (symbolsText) {
+                    symbolsText.style.display = 'block';
+                    symbolsText.style.fill = customStroke || (edge.selected ? 'var(--sf-edge-active)' : 'var(--sf-edge-line)');
+                    symbolsText.style.fontSize = '12px';
+                    symbolsText.style.fontWeight = 'bold';
+                    
+                    const textPath = symbolsText.querySelector('textPath');
+                    if (textPath) {
+                        // Clear existing animation elements
+                        while (textPath.firstChild) textPath.removeChild(textPath.firstChild);
+                        textPath.textContent = '» » » » » » » »'; // Keep it shorter to avoid overlap jumps
+                        
+                        const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+                        animate.setAttribute('attributeName', 'startOffset');
+                        animate.setAttribute('from', '-20%');
+                        animate.setAttribute('to', '100%');
+                        animate.setAttribute('dur', '3s');
+                        animate.setAttribute('repeatCount', 'indefinite');
+                        textPath.appendChild(animate);
+                    }
+                }
+                fgPath.style.strokeDasharray = 'none';
+            } else {
+                fgPath.style.strokeDasharray = '5, 5';
+                fgPath.style.animation = 'sf-dash-anim 1s linear infinite';
+            }
         } else {
-            fgPath.style.strokeDasharray = 'none';
             fgPath.style.animation = 'none';
+            if (customLineStyle === 'dashed') {
+                fgPath.style.strokeDasharray = '8, 8';
+            } else if (customLineStyle === 'dotted') {
+                fgPath.style.strokeDasharray = '2, 4';
+            } else {
+                fgPath.style.strokeDasharray = 'none';
+            }
         }
 
         const routeHash = `${sourcePos.x},${sourcePos.y}|${targetPos.x},${targetPos.y}|${routingMode}|${obstacles.length}`;
@@ -133,9 +199,11 @@ export class EdgeManager {
                     if (g) {
                         const bg = g.querySelector('.sci-flow-edge-bg') as SVGPathElement;
                         const fg = g.querySelector('.sci-flow-edge-fg') as SVGPathElement;
+                        const ov = g.querySelector('.sci-flow-edge-overlay') as SVGPathElement;
                         if (bg && fg) {
                             bg.setAttribute('d', finalPath);
                             fg.setAttribute('d', finalPath);
+                            if (ov) ov.setAttribute('d', finalPath);
                         }
                     }
                 });
@@ -147,6 +215,7 @@ export class EdgeManager {
         } else {
             const pathString = getEdgePath({ source: sourcePos, target: targetPos, mode: routingMode as any, obstacles: obstacles });
             setPaths(pathString);
+            overlayPath.setAttribute('d', pathString);
             this.routeCache.set(edge.id, pathString);
             this.routingHashCache.set(edge.id, routeHash);
         }
