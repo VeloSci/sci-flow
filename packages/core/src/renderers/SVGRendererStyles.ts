@@ -12,6 +12,7 @@ export const SVG_RENDERER_STYLES = `
     --sf-edge-line: #808080;
     --sf-edge-active: #ffffff;
     --sf-grid-dot: #2c2e33;
+    --sf-bg: #121417;
   }
 
   .sci-flow-svg-renderer {
@@ -45,6 +46,8 @@ export const SVG_RENDERER_STYLES = `
   }
 
   .sci-flow-node-header {
+    height: 32px;
+    box-sizing: border-box;
     padding: 6px 10px;
     background-color: var(--sf-node-header-ops);
     color: var(--sf-node-header-text);
@@ -67,11 +70,47 @@ export const SVG_RENDERER_STYLES = `
     background-color: var(--sf-node-header-output);
   }
 
+  .sci-flow-node-main {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-width: 140px;
+  }
+
   .sci-flow-node-body {
-    padding: 6px 10px;
-    color: #999;
-    font-size: 11px;
+    padding: 1px 7px 5px;
+    color: #eee;
+    font-size: 12px;
     line-height: 1.4;
+    min-height: 20px;
+  }
+
+  .sci-flow-node-ports-area {
+    position: relative;
+    width: 100%;
+    background: rgba(0,0,0,0.1);
+    box-sizing: border-box;
+  }
+
+  .sci-flow-node-actions {
+    padding: 8px 10px;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .sci-flow-node-id {
+    opacity: 0.4;
+    font-size: 10px;
+    font-weight: normal;
+  }
+
+  .sci-flow-node-fallback {
+    padding: 20px 10px;
+    text-align: center;
+    color: #666;
+    font-style: italic;
   }
 
   .sci-flow-port {
@@ -83,6 +122,10 @@ export const SVG_RENDERER_STYLES = `
     transition: transform 0.15s ease, fill 0.2s ease, filter 0.2s ease, r 0.2s ease;
     transform-box: fill-box;
     transform-origin: center;
+    /* Ensure ports are always on top of edges */
+    position: relative;
+    /* Add a subtle glow to make ports more visible */
+    filter: drop-shadow(0 0 2px rgba(0,0,0,0.8));
   }
 
   /* Data type specific colors (Blender-inspired) */
@@ -95,6 +138,24 @@ export const SVG_RENDERER_STYLES = `
   .sci-flow-port:hover {
     transform: scale(1.5);
     filter: brightness(1.3) drop-shadow(0 0 4px rgba(255,255,255,0.6));
+  }
+
+  /* Connection Highlighting */
+  .sci-flow-dragging-edge .sci-flow-port {
+    opacity: 0.4;
+    transition: opacity 0.3s ease;
+  }
+
+  .sci-flow-port-target-valid {
+    opacity: 1 !important;
+    r: 7 !important;
+    fill: var(--sf-port-active) !important;
+    filter: drop-shadow(0 0 8px var(--sf-port-active));
+  }
+
+  .sci-flow-port-target-invalid {
+    opacity: 0.1 !important;
+    cursor: not-allowed;
   }
 
   .sci-flow-port-label {
@@ -120,6 +181,16 @@ export const SVG_RENDERER_STYLES = `
     filter: brightness(1.1);
   }
 
+  /* Edge port indicators - should be subtle */
+  .sci-flow-port-source,
+  .sci-flow-port-target {
+    fill: var(--sf-bg);
+    stroke: var(--sf-edge-line);
+    stroke-width: 2px;
+    opacity: 0.8;
+    pointer-events: none;
+  }
+
   .sci-flow-edge-fg {
     fill: none;
     pointer-events: none;
@@ -132,5 +203,49 @@ export const SVG_RENDERER_STYLES = `
     stroke: transparent;
     stroke-width: 15px;
     cursor: pointer;
+  }
+
+  .sci-flow-edge-animated-pulse {
+    animation: sf-blink 1s ease-in-out infinite;
+  }
+
+  .sci-flow-edge-animated-arrows {
+    stroke-dasharray: 10, 5;
+    animation: sf-dash-anim 0.5s linear infinite;
+  }
+
+  .sci-flow-edge-animated-symbols {
+    /* Base style for symbols, actual pattern set in JS */
+    animation: sf-dash-anim 1s linear infinite;
+  }
+
+  .sci-flow-edge-symbols {
+    pointer-events: none;
+    fill: var(--sf-edge-line);
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 2px;
+  }
+
+  @keyframes sf-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+
+  @keyframes sf-dash-anim {
+    from {
+      stroke-dashoffset: 30;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @keyframes sf-text-flow {
+    from {
+      startOffset: -10%;
+    }
+    to {
+      startOffset: 100%;
+    }
   }
 `;

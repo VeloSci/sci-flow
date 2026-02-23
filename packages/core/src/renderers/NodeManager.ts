@@ -18,7 +18,31 @@ export class NodeManager {
                 this.nodesGroup.appendChild(g);
                 if (stateManager?.onNodeMount) {
                     const wrapper = g.querySelector('.sci-flow-node-wrapper') as HTMLDivElement;
-                    stateManager.onNodeMount(node.id, wrapper);
+                    const bodyArea = g.querySelector('.sci-flow-node-body') as HTMLDivElement;
+                    stateManager.onNodeMount(node.id, bodyArea || wrapper);
+                }
+            } else {
+                // Check if node type changed or if we need to swap default preview for real component
+                const wrapper = g.querySelector('.sci-flow-node-wrapper') as HTMLDivElement;
+                const nodeDef = registry.get(node.type);
+                const isDefaultPreview = wrapper?.dataset.isDefaultPreview === 'true';
+                
+                // Only re-render if:
+                // 1. The type has fundamentally changed
+                // 2. We were showing a placeholder and now we have a real HTML component
+                // 3. We were showing a placeholder for a React node that is now registered
+                if (wrapper && (
+                    wrapper.dataset.type !== node.type || 
+                    (isDefaultPreview && nodeDef)
+                )) {
+                    this.nodesGroup.removeChild(g);
+                    g = this.createNodeElement(node, stateManager, registry);
+                    this.nodesGroup.appendChild(g);
+                    if (stateManager?.onNodeMount) {
+                        const newWrapper = g.querySelector('.sci-flow-node-wrapper') as HTMLDivElement;
+                        const newBodyArea = g.querySelector('.sci-flow-node-body') as HTMLDivElement;
+                        stateManager.onNodeMount(node.id, newBodyArea || newWrapper);
+                    }
                 }
             }
             
@@ -40,7 +64,7 @@ export class NodeManager {
         g.setAttribute('class', 'sci-flow-node');
         
         const foreignObj = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
-        const initialWidth = node.style?.width || 200;
+        const initialWidth = node.style?.width || 140;
         const initialHeight = node.style?.height || 100;
         foreignObj.setAttribute('width', initialWidth.toString());
         foreignObj.setAttribute('height', initialHeight.toString());
@@ -50,27 +74,45 @@ export class NodeManager {
         wrapper.className = 'sci-flow-node-wrapper';
         wrapper.dataset.type = node.type;
         
-        // Ensure a minimum height based on ports
+        // Essential: Track if this is a default preview to allow later replacement
+        const nodeDef = registry.get(node.type);
+        wrapper.dataset.isDefaultPreview = nodeDef ? 'false' : 'true';
+
         const inputIds = Object.keys(node.inputs || {});
         const outputIds = Object.keys(node.outputs || {});
-        const portCount = Math.max(inputIds.length, outputIds.length);
         const headerHeight = 32;
-        const portSpacing = 26; // More space for independence
-        const minH = headerHeight + (portCount * portSpacing) + 20;
-        wrapper.style.minHeight = `${minH}px`;
+        const portSpacing = 26;
+
+        // Initialize Structure
+        wrapper.innerHTML = `
+            <div class="sci-flow-node-header">
+                <strong>${nodeDef ? (node.data?.title || node.type) : node.type}</strong>
+                <span class="sci-flow-node-id">${node.id.slice(0, 4)}</span>
+            </div>
+            <div class="sci-flow-node-main">
+                <div class="sci-flow-node-body"></div>
+                <div class="sci-flow-node-ports-area"></div>
+                <div class="sci-flow-node-actions"></div>
+            </div>
+        `;
+
+        const bodyArea = wrapper.querySelector('.sci-flow-node-body') as HTMLDivElement;
+        const portsArea = wrapper.querySelector('.sci-flow-node-ports-area') as HTMLDivElement;
         
-        const nodeDef = registry.get(node.type);
+        // Populate Body
         if (nodeDef?.renderHTML) {
-            wrapper.appendChild(nodeDef.renderHTML(node));
+            bodyArea.appendChild(nodeDef.renderHTML(node));
+        } else if (!nodeDef) {
+            bodyArea.innerHTML = `<div class="sci-flow-node-fallback">Default Node Content</div>`;
+        }
+
+        // Reserve space for ports
+        const portCount = Math.max(inputIds.length, outputIds.length);
+        if (portCount > 0) {
+            portsArea.style.height = `${portCount * 26}px`;
+            portsArea.style.minHeight = '20px';
         } else {
-            wrapper.innerHTML = `
-                <div class="sci-flow-node-header">
-                    <strong>${node.type}</strong>
-                    <span style="opacity: 0.5; font-size: 10px;">${node.id.slice(0, 8)}</span>
-                </div>
-                <div class="sci-flow-node-body">
-                    Default Node Preview
-                </div>`;
+            portsArea.style.display = 'none';
         }
 
         // Essential: Append foreignObject FIRST so it is under labels/ports
@@ -89,8 +131,20 @@ export class NodeManager {
             return port;
         };
 
-        const inPorts = inputIds.map(id => createSVGPort(id, 'in', node.inputs[id]?.dataType || 'any'));
-        const outPorts = outputIds.map(id => createSVGPort(id, 'out', node.outputs[id]?.dataType || 'any'));
+        const inPorts = inputIds.map((id, i) => {
+            const port = createSVGPort(id, 'in', node.inputs[id]?.dataType || 'any');
+            const y = headerHeight + 18 + (i * portSpacing);
+            port.setAttribute('cy', y.toString());
+            port.setAttribute('cx', '-6');
+            return port;
+        });
+        const outPorts = outputIds.map((id, i) => {
+            const port = createSVGPort(id, 'out', node.outputs[id]?.dataType || 'any');
+            const y = headerHeight + 18 + (i * portSpacing);
+            port.setAttribute('cy', y.toString());
+            port.setAttribute('cx', String(initialWidth + 6));
+            return port;
+        });
 
         let rafId: number;
         const ro = new ResizeObserver(() => {
@@ -103,18 +157,31 @@ export class NodeManager {
                 foreignObj.setAttribute('width', w.toString());
                 foreignObj.setAttribute('height', h.toString());
 
+                const portsArea = wrapper.querySelector('.sci-flow-node-ports-area') as HTMLDivElement;
+                const portsYOffset = portsArea ? (portsArea.offsetTop) : headerHeight;
+
                 // Sync state if needed
+                // Sync state if dimensions changed
                 const stateNode = stateManager?.getState().nodes.get(node.id);
-                if (stateNode && (Math.abs((stateNode.style?.width || 0) - w) > 1 || Math.abs((stateNode.style?.height || 0) - h) > 1)) {
+                const sizeChanged = stateNode && (Math.abs((stateNode.style?.width || 0) - w) > 1 || Math.abs((stateNode.style?.height || 0) - h) > 1);
+                
+                if (sizeChanged) {
                     stateNode.style = { ...stateNode.style, width: w, height: h };
+                }
+
+                // ALWAYS force an update on the first settlement to fix initial edge misalignment
+                // or if the internal layout shifted (even if outer size is same)
+                const isFirstLayout = !wrapper.dataset.layoutSettled;
+                if (isFirstLayout || sizeChanged) {
+                    wrapper.dataset.layoutSettled = 'true';
                     stateManager?.forceUpdate();
                 }
                 
-                // Position ports and labels with fixed spacing
+                // Position ports and labels with dynamic spacing
                 inPorts.forEach((p, i) => {
-                    const y = headerHeight + 18 + (i * portSpacing);
+                    const y = portsYOffset + 13 + (i * portSpacing);
                     p.setAttribute('cy', y.toString());
-                    p.setAttribute('cx', '-6'); // Slightly outside left edge
+                    p.setAttribute('cx', '-6');
 
                     const labelId = `label-in-${node.id}-${inputIds[i]}`;
                     let label = document.getElementById(labelId) as unknown as SVGTextElement | null;
@@ -122,9 +189,9 @@ export class NodeManager {
                         label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
                         label.id = labelId;
                         label.setAttribute('class', 'sci-flow-port-label');
-                        label.setAttribute('x', '12'); // More padding
+                        label.setAttribute('x', '12');
                         label.style.pointerEvents = 'none';
-                        g.appendChild(label); // On top of body
+                        g.appendChild(label);
                     }
                     if (label) {
                         label.setAttribute('y', (y + 4).toString());
@@ -133,9 +200,9 @@ export class NodeManager {
                 });
 
                 outPorts.forEach((p, i) => {
-                    const y = headerHeight + 18 + (i * portSpacing);
+                    const y = portsYOffset + 13 + (i * portSpacing);
                     p.setAttribute('cy', y.toString());
-                    p.setAttribute('cx', String(w + 6)); // Slightly outside right edge
+                    p.setAttribute('cx', String(w + 6));
 
                     const labelId = `label-out-${node.id}-${outputIds[i]}`;
                     let label = document.getElementById(labelId) as unknown as SVGTextElement | null;
@@ -145,7 +212,7 @@ export class NodeManager {
                         label.setAttribute('class', 'sci-flow-port-label');
                         label.setAttribute('text-anchor', 'end');
                         label.style.pointerEvents = 'none';
-                        g.appendChild(label); // On top of body
+                        g.appendChild(label);
                     }
                     if (label) {
                         label.setAttribute('x', (w - 12).toString());

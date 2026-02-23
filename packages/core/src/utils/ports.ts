@@ -1,21 +1,58 @@
 import { Node } from '../types';
 
 export function getPortAnchor(node: Node, portId: string): { x: number, y: number } {
-  const nw = node.style?.width || 200;
-  const nh = node.style?.height || 150;
+  // Try to read from DOM first (most accurate)
+  const nodeGroup = document.getElementById(`node-${node.id}`);
+  if (nodeGroup) {
+    const portElement = nodeGroup.querySelector(`[data-portid="${portId}"]`) as SVGCircleElement;
+    if (portElement) {
+      const cxStr = portElement.getAttribute('cx');
+      const cyStr = portElement.getAttribute('cy');
+      if (cxStr !== null && cyStr !== null) {
+        const cx = parseFloat(cxStr);
+        const cy = parseFloat(cyStr);
+        // If they are exactly 0, they might not be set yet, fall back just in case
+        // unless it's explicitly named 'in0' or 'out0' (though we usually start at 1)
+        if (cx !== 0 || cy !== 0 || portId.endsWith('0')) { 
+          return { x: node.position.x + cx, y: node.position.y + cy };
+        }
+      }
+    }
+  }
+
+  // Fallback: calculate position (for initial render before DOM is ready)
+  const nw = node.style?.width || 140;
+  const nh = node.style?.height || 100;
   const config = (node as any).portConfig || 'left-right';
 
-  // Determine side based on config and portId (in1 or out1)
-  let side: 'left' | 'right' | 'top' | 'bottom' | 'top-left' | 'bottom-right' = 'left';
+  // Get port index for positioning multiple ports
+  const inputIds = Object.keys(node.inputs || {});
+  const outputIds = Object.keys(node.outputs || {});
   
-  if (portId === 'in1') {
+  const headerHeight = 32;
+  const portSpacing = 26;
+  
+  let side: 'left' | 'right' | 'top' | 'bottom' | 'top-left' | 'bottom-right' = 'left';
+  let portIndex = 0;
+  
+  // Determine side and index based on config
+  const isInput = !!node.inputs[portId];
+  const isOutput = !!node.outputs[portId];
+
+  if (isInput) {
+      portIndex = inputIds.indexOf(portId);
+      if (portIndex === -1 && inputIds.length > 0) portIndex = 0; // Guard against mismatch
+      
       if (config === 'top-bottom' || config === 'top-in-bottom-out') side = 'top';
       else if (config === 'bottom-top' || config === 'bottom-in-top-out') side = 'bottom';
       else if (config === 'right-in-left-out') side = 'right';
       else if (config === 'left-top-in-bottom-right-out') side = 'top-left';
       else if (config === 'bottom-right-in-left-top-out') side = 'bottom-right';
       else side = 'left';
-  } else {
+  } else if (isOutput) {
+      portIndex = outputIds.indexOf(portId);
+      if (portIndex === -1 && outputIds.length > 0) portIndex = 0;
+      
       if (config === 'top-bottom' || config === 'bottom-in-top-out') side = 'bottom';
       else if (config === 'bottom-top' || config === 'top-in-bottom-out') side = 'top';
       else if (config === 'left-in-right-out') side = 'right';
@@ -25,14 +62,18 @@ export function getPortAnchor(node: Node, portId: string): { x: number, y: numbe
       else side = 'right';
   }
 
+  // Calculate exact position based on port index
+  const safeIndex = Math.max(0, portIndex);
+  const portY = headerHeight + 18 + (safeIndex * portSpacing);
+  
   switch (side) {
       case 'top': return { x: node.position.x + nw / 2, y: node.position.y };
       case 'bottom': return { x: node.position.x + nw / 2, y: node.position.y + nh };
-      case 'left': return { x: node.position.x - 6, y: node.position.y + nh / 2 };
-      case 'right': return { x: node.position.x + nw + 6, y: node.position.y + nh / 2 };
-      case 'top-left': return { x: node.position.x - 6, y: node.position.y + 18 };
-      case 'bottom-right': return { x: node.position.x + nw + 6, y: node.position.y + nh - 18 };
-      default: return { x: node.position.x, y: node.position.y };
+      case 'left': return { x: node.position.x - 6, y: node.position.y + portY };
+      case 'right': return { x: node.position.x + nw + 6, y: node.position.y + portY };
+      case 'top-left': return { x: node.position.x - 6, y: node.position.y + portY };
+      case 'bottom-right': return { x: node.position.x + nw + 6, y: node.position.y + portY };
+      default: return { x: node.position.x - 6, y: node.position.y + portY };
   }
 }
 
