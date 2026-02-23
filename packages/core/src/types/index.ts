@@ -108,6 +108,7 @@ export interface Edge {
     lineStyle?: 'solid' | 'dashed' | 'dotted';
     stroke?: string;
     strokeWidth?: number;
+    animationType?: 'pulse' | 'arrows' | 'symbols' | 'dash';
   };
   data?: Record<string, any>;
 }
@@ -123,6 +124,7 @@ export interface FlowState {
     lineStyle?: 'solid' | 'dashed' | 'dotted';
     stroke?: string;
     strokeWidth?: number;
+    animationType?: 'pulse' | 'arrows' | 'symbols' | 'dash';
   };
 }
 

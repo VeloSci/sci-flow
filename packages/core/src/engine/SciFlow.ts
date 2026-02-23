@@ -5,7 +5,7 @@ import { BaseRenderer } from '../renderers/BaseRenderer';
 import { GridRenderer } from '../renderers/GridRenderer';
 import { InteractionManager } from '../interaction/InteractionManager';
 import { Node, Edge, FlowState, Theme } from '../types';
-import { lightTheme, darkTheme } from '../theme/defaultThemes';
+import { ThemeManager } from '../theme/ThemeManager';
 
 export interface SciFlowOptions {
   container: HTMLElement;
@@ -14,6 +14,7 @@ export interface SciFlowOptions {
   theme?: Partial<Theme> | 'light' | 'dark' | 'system';
   minZoom?: number;
   maxZoom?: number;
+  nodeTypes?: any[];
 }
 
 export class SciFlow {
@@ -26,8 +27,7 @@ export class SciFlow {
   private unsubscribe: () => void;
   
   // Theming State
-  private currentTheme: Theme = lightTheme;
-  private styleInjector?: HTMLStyleElement;
+  private themeManager: ThemeManager;
 
   constructor(options: SciFlowOptions) {
     this.options = { renderer: 'auto', autoSwitchThreshold: 1000, theme: 'light', ...options };
@@ -40,8 +40,8 @@ export class SciFlow {
     
     this.stateManager = new StateManager();
     
-    // Setup Theming early so renderers inherit CSS variables instantly
-    this.setupTheming(this.options.theme);
+    this.themeManager = new ThemeManager(this.container, this.stateManager.id);
+    this.themeManager.setTheme(this.options.theme);
 
     this.interactionManager = new InteractionManager({
         container: this.container,
@@ -57,11 +57,28 @@ export class SciFlow {
     this.renderer = this.createRenderer(initialRendererType);
     (this.renderer as any).stateManager = this.stateManager;
 
+    // Register node types if provided in options
+    if (this.options.nodeTypes && Array.isArray(this.options.nodeTypes)) {
+        this.options.nodeTypes.forEach((Comp: any) => {
+            const types = new Set<string>();
+            if (Comp.nodeType) types.add(Comp.nodeType);
+            if (Comp.name) {
+                types.add(Comp.name);
+                // Also add a version that might match common lowercase prototypes
+                types.add(Comp.name.toLowerCase().replace('node', ''));
+            }
+            
+            types.forEach(type => {
+                if (type) this.stateManager.registerNodeType({ type });
+            });
+        });
+    }
+
     // Subscribe to state changes and trigger render
     this.unsubscribe = this.stateManager.subscribe((state: FlowState) => {
       // Pass the node registry map via a getter for the renderer to instanciate nodes
       this.gridRenderer.render(state);
-      this.renderer.render(state, this.stateManager['nodeRegistry']);
+      this.renderer.render(state, this.stateManager.getNodeRegistry());
       this.checkRendererThreshold(state.nodes.size);
     });
   }
@@ -90,90 +107,11 @@ export class SciFlow {
     this.renderer = this.createRenderer(type);
     
     // Re-render immediately on the new renderer
-    this.renderer.render(this.stateManager.getState(), this.stateManager['nodeRegistry']);
-  }
-
-  // --- Theming API ---
-  private setupTheming(themeOpt?: Partial<Theme> | 'light' | 'dark' | 'system') {
-      this.styleInjector = document.createElement('style');
-      this.styleInjector.id = 'sci-flow-theme-injector';
-      this.container.appendChild(this.styleInjector);
-      this.setTheme(themeOpt);
+    this.renderer.render(this.stateManager.getState(), this.stateManager.getNodeRegistry());
   }
 
   public setTheme(themeOpt?: Partial<Theme> | 'light' | 'dark' | 'system') {
-      let baseTheme = lightTheme;
-      
-      if (themeOpt === 'dark') {
-          baseTheme = darkTheme;
-      } else if (themeOpt === 'system') {
-          baseTheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? darkTheme : lightTheme;
-      } else if (typeof themeOpt === 'object') {
-          // If they passed partial theme options, detect if it's meant to be dark or light as a baseline
-          baseTheme = (themeOpt.name === 'dark' ? darkTheme : lightTheme);
-      }
-
-      // Merge user overrides if object
-      this.currentTheme = typeof themeOpt === 'object' ? {
-          name: themeOpt.name || baseTheme.name,
-          colors: { ...baseTheme.colors, ...(themeOpt.colors || {}) }
-      } : baseTheme;
-
-      this.applyThemeVariables();
-  }
-
-  private applyThemeVariables() {
-      if (!this.styleInjector) return;
-      
-      const colors = this.currentTheme.colors;
-      const cssVars = `
-        .sci-flow-container-${this.stateManager?.id || 'root'} {
-            --sf-bg: ${colors.background};
-            --sf-grid-dot: ${colors.gridDot};
-            --sf-node-bg: ${colors.nodeBackground};
-            --sf-node-border: ${colors.nodeBorder};
-            --sf-node-text: ${colors.nodeText};
-            --sf-edge-line: ${colors.edgeLine};
-            --sf-edge-active: ${colors.edgeActive};
-            --sf-edge-animated: ${colors.edgeAnimated};
-            --sf-port-bg: ${colors.portBackground};
-            --sf-port-border: ${colors.portBorder};
-            --sf-context-bg: ${colors.contextMenuBackground};
-            --sf-context-text: ${colors.contextMenuText};
-            --sf-context-hover: ${colors.contextMenuHover};
-            --sf-selection-bg: ${colors.selectionBoxBackground};
-            --sf-selection-border: ${colors.selectionBoxBorder};
-        }
-        
-        /* Edge Hover Effects */
-        .sci-flow-container-${this.stateManager?.id || 'root'} .sci-flow-edge-bg:hover + .sci-flow-edge-fg {
-            stroke: var(--sf-edge-active) !important;
-            stroke-width: 3px !important;
-        }
-        
-        .sci-flow-container-${this.stateManager?.id || 'root'} .sci-flow-edge-bg:hover ~ circle {
-            stroke: var(--sf-edge-active) !important;
-            stroke-width: 3px !important;
-            transform: scale(1.5);
-            transform-origin: center;
-            transform-box: fill-box;
-        }
-
-        /* Node Hover Effects */
-        .sci-flow-container-${this.stateManager?.id || 'root'} .sci-flow-node:hover > foreignObject > div {
-            box-shadow: 0 0 15px var(--sf-edge-active) !important;
-            transition: box-shadow 0.2s ease;
-        }
-
-        /* Dragging State: Prevent text selection globally while user holds click */
-        .sci-flow-container-${this.stateManager?.id || 'root'}.sci-flow-dragging * {
-            user-select: none !important;
-            -webkit-user-select: none !important;
-        }
-      `;
-      
-      this.styleInjector.innerHTML = cssVars;
-      this.container.classList.add(`sci-flow-container-${this.stateManager?.id || 'root'}`);
+      this.themeManager.setTheme(themeOpt);
   }
 
   // --- API Methods ---
@@ -297,6 +235,7 @@ export class SciFlow {
   public destroy() {
     this.unsubscribe();
     this.interactionManager.destroy();
+    this.themeManager.destroy();
     this.gridRenderer.destroy();
     this.renderer.destroy();
   }
