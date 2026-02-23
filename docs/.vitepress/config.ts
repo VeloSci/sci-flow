@@ -73,7 +73,7 @@ export default defineConfig({
     ]
   },
   vite: {
-    plugins: [react()],
+    plugins: [react() as any],
     resolve: {
       alias: [
         { find: '@sci-flow/core', replacement: resolve(__dirname, '../../packages/core/src/index.ts') },
