@@ -89,15 +89,17 @@ export class SVGRenderer extends BaseRenderer {
     existingNodeDocs.forEach(id => {
       document.getElementById(id)?.remove();
       const sm = (this as any).stateManager;
-      if (sm?.onNodeUnmount) sm.onNodeUnmount(id);
+      // Extract the original node ID from "node-${node.id}"
+      const nodeId = id.replace('node-', '');
+      if (sm?.onNodeUnmount) sm.onNodeUnmount(nodeId);
     });
 
     const obstacles = Array.from(state.nodes.values()).map(n => ({
         id: n.id,
         x: (n as any).position.x,
         y: (n as any).position.y,
-        width: (n as any).style?.width || 200,
-        height: (n as any).style?.height || 150
+        width: (n as any).style?.width || 140,
+        height: (n as any).style?.height || 100
     }));
 
     const existingEdgeDocs = new Set(Array.from(this.edgesGroup.children).map(n => n.id));
