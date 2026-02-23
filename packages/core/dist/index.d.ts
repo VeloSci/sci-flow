@@ -86,6 +86,7 @@ interface Edge {
         lineStyle?: 'solid' | 'dashed' | 'dotted';
         stroke?: string;
         strokeWidth?: number;
+        animationType?: 'pulse' | 'arrows' | 'symbols' | 'dash';
     };
     data?: Record<string, any>;
 }
@@ -107,6 +108,7 @@ interface FlowState {
         lineStyle?: 'solid' | 'dashed' | 'dotted';
         stroke?: string;
         strokeWidth?: number;
+        animationType?: 'pulse' | 'arrows' | 'symbols' | 'dash';
     };
 }
 type OnNodesChange = (nodes: Node[]) => void;
@@ -118,7 +120,6 @@ type OnPaneContextMenu = (event: MouseEvent) => void;
 declare const lightTheme: Theme;
 declare const darkTheme: Theme;
 
-type Listener = (state: FlowState) => void;
 interface NodeDefinition {
     type: string;
     renderHTML?: (node: Node) => HTMLElement;
@@ -126,63 +127,54 @@ interface NodeDefinition {
     defaultStyle?: Partial<Node['style']>;
     evaluate?: (inputs: Record<string, any>, nodeData: any) => Record<string, any>;
 }
+
+type Listener = (state: FlowState) => void;
 declare class StateManager {
     private state;
     private listeners;
     readonly id: string;
     private history;
-    private historyIndex;
-    private maxHistory;
-    private isRestoringHistory;
-    private nodeRegistry;
+    private registry;
     onNodesChange?: (nodes: Node[]) => void;
     onEdgesChange?: (edges: Edge[]) => void;
-    onNodeContextMenu?: (event: MouseEvent, node: Node) => void;
-    onEdgeContextMenu?: (event: MouseEvent, edge: Edge) => void;
-    onPaneContextMenu?: (event: MouseEvent) => void;
-    onConnect?: (connection: {
-        source: string;
-        sourceHandle: string;
-        target: string;
-        targetHandle: string;
-    }) => void;
+    onConnect?: (connection: any) => void;
     onNodeMount?: (nodeId: string, container: HTMLElement) => void;
     onNodeUnmount?: (nodeId: string) => void;
     constructor(initialState?: Partial<FlowState>);
-    registerNodeType(definition: NodeDefinition): void;
+    registerNodeType(def: NodeDefinition): void;
     getNodeDefinition(type: string): NodeDefinition | undefined;
     getRegisteredNodeTypes(): string[];
+    getNodeRegistry(): Map<string, NodeDefinition>;
     getState(): FlowState;
-    subscribe(listener: Listener): () => void;
+    subscribe(l: Listener): () => boolean;
     private notify;
     forceUpdate(): void;
     setNodes(nodes: Node[]): void;
+    setEdges(edges: Edge[]): void;
     setSelection(nodeIds: string[], edgeIds: string[]): void;
-    appendSelection(nodeId?: string, edgeId?: string): void;
     addNode(node: Node): void;
     setDraftEdge(sourceNodeId: string, sourcePortId: string, targetPosition: Position): void;
     clearDraftEdge(): void;
+    removeNode(id: string): void;
+    private getDescendantsLocal;
+    updateNodePosition(id: string, x: number, y: number, silent?: boolean): void;
+    addEdge(edge: Edge): void;
+    removeEdge(id: string): void;
+    saveSnapshot(): void;
+    undo(): void;
+    redo(): void;
+    private restoreSnapshot;
     setDefaultEdgeType(type: 'straight' | 'bezier' | 'step' | 'smart'): void;
     setDefaultEdgeStyle(style: any): void;
+    toJSON(): string;
+    fromJSON(jsonString: string): void;
+    setViewport(v: ViewportState): void;
     setSmartGuides(guides: {
         x?: number;
         y?: number;
     }[]): void;
     clearSmartGuides(): void;
-    saveSnapshot(): void;
-    undo(): void;
-    redo(): void;
-    private restoreSnapshot;
-    removeNode(id: string): void;
-    private getDescendants;
-    updateNodePosition(id: string, x: number, y: number, silent?: boolean): void;
     commitNodePositions(): void;
-    setEdges(edges: Edge[]): void;
-    addEdge(edge: Edge): void;
-    removeEdge(id: string): void;
-    setViewport(viewport: ViewportState): void;
-    toJSON(): string;
-    fromJSON(jsonString: string): void;
 }
 
 interface SciFlowOptions {
@@ -192,6 +184,7 @@ interface SciFlowOptions {
     theme?: Partial<Theme> | 'light' | 'dark' | 'system';
     minZoom?: number;
     maxZoom?: number;
+    nodeTypes?: any[];
 }
 declare class SciFlow {
     private container;
@@ -201,15 +194,12 @@ declare class SciFlow {
     private gridRenderer;
     private options;
     private unsubscribe;
-    private currentTheme;
-    private styleInjector?;
+    private themeManager;
     constructor(options: SciFlowOptions);
     private createRenderer;
     private checkRendererThreshold;
     private switchRenderer;
-    private setupTheming;
     setTheme(themeOpt?: Partial<Theme> | 'light' | 'dark' | 'system'): void;
-    private applyThemeVariables;
     setNodes(nodes: Node[]): void;
     setEdges(edges: Edge[]): void;
     addNode(node: Node): void;
