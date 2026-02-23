@@ -1,28 +1,48 @@
+import React from 'react';
 
+export const MathNode = ({ node, engine }: any) => {
+    const updateData = (newData: any) => {
+        if (!engine) return;
+        const state = (engine as any).stateManager.getState();
+        const n = state.nodes.get(node.id);
+        if (n) {
+            n.data = { ...n.data, ...newData };
+            (engine as any).stateManager.forceUpdate();
+        }
+    };
 
-export const MathNode = ({ node }: any) => {
+    const inputStyle: React.CSSProperties = {
+        width: '40px',
+        padding: '4px',
+        background: '#333',
+        border: '1px solid #444',
+        color: '#fff',
+        borderRadius: '4px',
+        fontSize: '12px',
+        textAlign: 'center'
+    };
+
     return (
-        <>
-            <div className="sci-flow-node-header">
-                {node.data?.title || 'Math Op'}
-                <div style={{ width: 12, height: 12, borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }}></div>
+        <div style={{ padding: '0px' }}>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center', justifyContent: 'center' }}>
+                <input 
+                    type="number" 
+                    value={node.data.a || 0} 
+                    onChange={(e) => updateData({ a: parseFloat(e.target.value) })}
+                    style={inputStyle}
+                />
+                <span style={{ color: '#888' }}>+</span>
+                <input 
+                    type="number" 
+                    value={node.data.b || 0} 
+                    onChange={(e) => updateData({ b: parseFloat(e.target.value) })}
+                    style={inputStyle}
+                />
             </div>
-            <div className="sci-flow-node-body">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ color: '#aaa' }}>Color 1</span>
-                        <div style={{ width: 40, height: 14, background: '#e38634', borderRadius: '2px' }}></div>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ color: '#aaa' }}>Color 2</span>
-                        <div style={{ width: 40, height: 14, background: '#fff', borderRadius: '2px' }}></div>
-                    </div>
-                    <div style={{ marginTop: '4px', textAlign: 'right', fontSize: '10px', opacity: 0.4 }}>
-                        {node.id}
-                    </div>
-                </div>
+            <div style={{ background: '#1a1a1a', padding: '8px', borderRadius: '4px', textAlign: 'center', fontSize: '14px', fontWeight: 'bold', color: 'var(--sf-edge-active)' }}>
+                Result: {(node.data.a || 0) + (node.data.b || 0)}
             </div>
-        </>
+        </div>
     );
 };
 
