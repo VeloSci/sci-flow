@@ -42,11 +42,6 @@ function useSciFlow({ initialNodes = [], initialEdges = [], renderer = "auto", o
       renderer,
       ...options
     });
-    engineRef.current.setNodes(initialNodes);
-    engineRef.current.setEdges(initialEdges);
-    if (onInit) {
-      onInit(engineRef.current);
-    }
     const stateManager = engineRef.current.stateManager;
     if (stateManager) {
       stateManager.onNodesChange = (newNodes) => setNodesState(newNodes);
@@ -67,6 +62,11 @@ function useSciFlow({ initialNodes = [], initialEdges = [], renderer = "auto", o
           return newMap;
         });
       };
+    }
+    engineRef.current.setNodes(initialNodes);
+    engineRef.current.setEdges(initialEdges);
+    if (onInit) {
+      onInit(engineRef.current);
     }
     return () => {
       engineRef.current?.destroy();
@@ -119,12 +119,17 @@ function SciFlow2({
   nodeTypes = [],
   ...useSciFlowProps
 }) {
-  const { containerRef, portalMounts, nodes } = useSciFlow(useSciFlowProps);
+  const { containerRef, portalMounts, nodes, engine } = useSciFlow({ ...useSciFlowProps, nodeTypes });
   const typeMap = (0, import_react2.useMemo)(() => {
     const map = /* @__PURE__ */ new Map();
     nodeTypes.forEach((Comp) => {
-      const typeName = Comp.nodeType || Comp.name;
-      map.set(typeName, Comp);
+      if (Comp.nodeType) {
+        map.set(Comp.nodeType, Comp);
+      }
+      if (Comp.name) {
+        map.set(Comp.name, Comp);
+        map.set(Comp.name.toLowerCase().replace("node", ""), Comp);
+      }
     });
     return map;
   }, [nodeTypes]);
@@ -137,21 +142,12 @@ function SciFlow2({
       children: [
         Array.from(portalMounts.entries()).map(([nodeId, domElement]) => {
           const nodeData = nodes.find((n) => n.id === nodeId);
-          if (!nodeData || !domElement) {
-            return null;
-          }
+          if (!nodeData || !domElement) return null;
           const NodeComponent = typeMap.get(nodeData.type);
           if (NodeComponent) {
-            return (0, import_react_dom.createPortal)(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(NodeComponent, { node: nodeData }, nodeId), domElement);
+            return (0, import_react_dom.createPortal)(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(NodeComponent, { node: nodeData, engine }, nodeId), domElement);
           }
-          return (0, import_react_dom.createPortal)(
-            /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { style: { background: "#333", color: "white", padding: "10px", borderRadius: "6px", width: "100%", height: "100%" }, children: [
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("strong", { children: nodeData.type }),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("br", {}),
-              /* @__PURE__ */ (0, import_jsx_runtime.jsx)("small", { children: nodeId })
-            ] }, nodeId),
-            domElement
-          );
+          return null;
         }),
         children
       ]
