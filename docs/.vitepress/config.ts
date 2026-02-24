@@ -8,7 +8,7 @@ export default defineConfig({
   description: 'High-performance scientific flow engine',
   base: '/sci-flow/',
   head: [
-    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/sci-flow/logo.svg' }]
+    ['link', { rel: 'icon', type: 'image/x-icon', href: '/sci-flow/favicon.ico' }]
   ],
   themeConfig: {
     logo: '/logo.svg',
