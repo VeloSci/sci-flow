@@ -16,7 +16,7 @@ export class StateManager {
   public onConnect?: (connection: Connection) => void;
   public onNodeMount?: (nodeId: string, container: HTMLElement) => void;
   public onNodeUnmount?: (nodeId: string) => void;
-  
+
   public onNodeContextMenu?: OnNodeContextMenu;
   public onEdgeContextMenu?: OnEdgeContextMenu;
   public onPaneContextMenu?: OnPaneContextMenu;
@@ -27,6 +27,7 @@ export class StateManager {
       nodes: new Map(),
       edges: new Map(),
       viewport: { x: 0, y: 0, zoom: 1 },
+      direction: 'horizontal',
       defaultEdgeType: 'bezier',
       defaultEdgeStyle: { lineStyle: 'solid' },
       ...initialState
@@ -65,19 +66,19 @@ export class StateManager {
 
   public appendSelection(nodeId?: string, edgeId?: string) {
     if (nodeId) {
-        const node = this.state.nodes.get(nodeId);
-        if (node) node.selected = true;
+      const node = this.state.nodes.get(nodeId);
+      if (node) node.selected = true;
     }
     if (edgeId) {
-        const edge = this.state.edges.get(edgeId);
-        if (edge) edge.selected = true;
+      const edge = this.state.edges.get(edgeId);
+      if (edge) edge.selected = true;
     }
     this.notify();
   }
 
-  public addNode(node: Node) { 
-    this.state.nodes.set(node.id, node); 
-    this.notify(); 
+  public addNode(node: Node) {
+    this.state.nodes.set(node.id, node);
+    this.notify();
     this.onNodesChange?.(Array.from(this.state.nodes.values()));
   }
 
@@ -169,12 +170,98 @@ export class StateManager {
     this.notify();
   }
 
+  public setDirection(dir: 'horizontal' | 'vertical') {
+    const prevDir = this.state.direction;
+    this.state.direction = dir;
+
+    // Auto-layout: recalculate node positions when direction changes
+    if (prevDir !== dir && this.state.nodes.size > 0) {
+      this.autoLayout(dir);
+    }
+
+    // Force full re-render by invalidating all node layouts
+    this.state.nodes.forEach(node => {
+      const g = document.getElementById(`node-${node.id}`);
+      if (g) {
+        const wrapper = g.querySelector('.sci-flow-node-wrapper') as HTMLDivElement;
+        if (wrapper) delete wrapper.dataset.layoutSettled;
+      }
+    });
+    this.notify();
+  }
+
+  private autoLayout(dir: 'horizontal' | 'vertical') {
+    const nodes = Array.from(this.state.nodes.values());
+    const edges = Array.from(this.state.edges.values());
+
+    // Build adjacency for topological sort
+    const inDegree = new Map<string, number>();
+    const adj = new Map<string, string[]>();
+    nodes.forEach(n => { inDegree.set(n.id, 0); adj.set(n.id, []); });
+    edges.forEach(e => {
+      if (adj.has(e.source) && inDegree.has(e.target)) {
+        adj.get(e.source)!.push(e.target);
+        inDegree.set(e.target, (inDegree.get(e.target) || 0) + 1);
+      }
+    });
+
+    // BFS topological sort to get levels
+    const queue: string[] = [];
+    inDegree.forEach((deg, id) => { if (deg === 0) queue.push(id); });
+    const levels = new Map<string, number>();
+    while (queue.length > 0) {
+      const id = queue.shift()!;
+      const level = levels.get(id) || 0;
+      for (const next of (adj.get(id) || [])) {
+        const nextLevel = Math.max(levels.get(next) || 0, level + 1);
+        levels.set(next, nextLevel);
+        const newDeg = (inDegree.get(next) || 1) - 1;
+        inDegree.set(next, newDeg);
+        if (newDeg === 0) queue.push(next);
+      }
+    }
+
+    // Group nodes by level
+    const levelGroups = new Map<number, Node[]>();
+    nodes.forEach(n => {
+      const lvl = levels.get(n.id) || 0;
+      if (!levelGroups.has(lvl)) levelGroups.set(lvl, []);
+      levelGroups.get(lvl)!.push(n);
+    });
+
+    const nodeW = 180;
+    const nodeH = 140;
+    const gapX = 80;
+    const gapY = 80;
+    const startX = 50;
+    const startY = 50;
+
+    levelGroups.forEach((group, level) => {
+      group.forEach((node, idx) => {
+        if (dir === 'vertical') {
+          // Vertical: levels go top-to-bottom, siblings spread horizontally
+          node.position = {
+            x: startX + idx * (nodeW + gapX),
+            y: startY + level * (nodeH + gapY)
+          };
+        } else {
+          // Horizontal: levels go left-to-right, siblings spread vertically
+          node.position = {
+            x: startX + level * (nodeW + gapX),
+            y: startY + idx * (nodeH + gapY)
+          };
+        }
+      });
+    });
+  }
+
   public toJSON(): string {
     return JSON.stringify({
       version: 'sci-flow-1.0',
       nodes: Array.from(this.state.nodes.values()),
       edges: Array.from(this.state.edges.values()),
-      viewport: this.state.viewport
+      viewport: this.state.viewport,
+      direction: this.state.direction
     });
   }
 
@@ -186,6 +273,7 @@ export class StateManager {
       this.state.edges.clear();
       if (Array.isArray(data.edges)) data.edges.forEach((e: Edge) => this.state.edges.set(e.id, e));
       if (data.viewport) this.state.viewport = data.viewport;
+      if (data.direction) this.state.direction = data.direction;
       this.notify();
       this.onNodesChange?.(Array.from(this.state.nodes.values()));
       this.onEdgesChange?.(Array.from(this.state.edges.values()));

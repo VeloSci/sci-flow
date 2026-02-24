@@ -10,11 +10,11 @@ import { ThemeManager } from '../theme/ThemeManager';
 export interface SciFlowOptions {
   container: HTMLElement;
   renderer?: 'svg' | 'canvas' | 'auto';
-  autoSwitchThreshold?: number; // Node count where auto switch to canvas occurs
+  autoSwitchThreshold?: number;
   theme?: Partial<Theme> | 'light' | 'dark' | 'system';
+  direction?: 'horizontal' | 'vertical';
   minZoom?: number;
   maxZoom?: number;
-  nodeTypes?: Array<(({ new (...args: any[]): any; nodeType?: string }) | { type: string } | ((props: any) => any))>; // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
 export class SciFlow {
@@ -25,57 +25,41 @@ export class SciFlow {
   private gridRenderer: GridRenderer;
   private options: SciFlowOptions;
   private unsubscribe: () => void;
-  
+
   // Theming State
   private themeManager: ThemeManager;
 
   constructor(options: SciFlowOptions) {
     this.options = { renderer: 'auto', autoSwitchThreshold: 1000, theme: 'light', ...options };
     this.container = this.options.container;
-    
+
     // Ensure container has styling
     if (getComputedStyle(this.container).position === 'static') {
-        this.container.style.position = 'relative';
+      this.container.style.position = 'relative';
     }
-    
+
     this.stateManager = new StateManager();
-    
+
     this.themeManager = new ThemeManager(this.container, this.stateManager.id);
     this.themeManager.setTheme(this.options.theme);
 
+    if (this.options.direction) {
+      this.stateManager.setDirection(this.options.direction);
+    }
+
     this.interactionManager = new InteractionManager({
-        container: this.container,
-        stateManager: this.stateManager,
-        minZoom: this.options.minZoom,
-        maxZoom: this.options.maxZoom
+      container: this.container,
+      stateManager: this.stateManager,
+      minZoom: this.options.minZoom,
+      maxZoom: this.options.maxZoom
     });
-    
+
     this.gridRenderer = new GridRenderer({ container: this.container });
 
     // Initial renderer setup
     const initialRendererType = this.options.renderer === 'auto' ? 'svg' : (this.options.renderer || 'svg');
     this.renderer = this.createRenderer(initialRendererType);
     this.renderer.stateManager = this.stateManager;
-
-    // Register node types if provided in options
-    if (this.options.nodeTypes && Array.isArray(this.options.nodeTypes)) {
-        this.options.nodeTypes.forEach((Comp) => {
-            const types = new Set<string>();
-            const c = Comp as Record<string, unknown>;
-            
-            if (typeof c.nodeType === 'string') types.add(c.nodeType);
-            if (typeof c.type === 'string') types.add(c.type);
-            if (typeof c.name === 'string') {
-                types.add(c.name);
-                // Also add a version that might match common lowercase prototypes
-                types.add(c.name.toLowerCase().replace('node', ''));
-            }
-            
-            types.forEach(type => {
-                if (type) this.stateManager.registerNodeType({ type });
-            });
-        });
-    }
 
     // Subscribe to state changes and trigger render
     this.unsubscribe = this.stateManager.subscribe((state: FlowState) => {
@@ -108,13 +92,17 @@ export class SciFlow {
   private switchRenderer(type: 'svg' | 'canvas') {
     this.renderer.destroy();
     this.renderer = this.createRenderer(type);
-    
+
     // Re-render immediately on the new renderer
     this.renderer.render(this.stateManager.getState(), this.stateManager.getNodeRegistry());
   }
 
   public setTheme(themeOpt?: Partial<Theme> | 'light' | 'dark' | 'system') {
-      this.themeManager.setTheme(themeOpt);
+    this.themeManager.setTheme(themeOpt);
+  }
+
+  public setDirection(dir: 'horizontal' | 'vertical') {
+    this.stateManager.setDirection(dir);
   }
 
   // --- API Methods ---
@@ -186,7 +174,7 @@ export class SciFlow {
 
     const boundsWidth = maxX - minX;
     const boundsHeight = maxY - minY;
-    
+
     // Fallback if nodes are exactly at same pos
     if (boundsWidth <= 0 || boundsHeight <= 0) return;
 

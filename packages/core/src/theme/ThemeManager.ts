@@ -13,7 +13,7 @@ export class ThemeManager {
 
     public setTheme(themeOpt?: Partial<Theme> | 'light' | 'dark' | 'system') {
         let baseTheme = lightTheme;
-        
+
         if (themeOpt === 'dark') {
             baseTheme = darkTheme;
         } else if (themeOpt === 'system') {
@@ -32,7 +32,7 @@ export class ThemeManager {
 
     private applyThemeVariables() {
         if (!this.styleInjector) return;
-        
+
         const colors = this.currentTheme.colors;
         const cssVars = `
           .sci-flow-container-${this.stateManagerId} {
@@ -41,11 +41,17 @@ export class ThemeManager {
               --sf-node-bg: ${colors.nodeBackground};
               --sf-node-border: ${colors.nodeBorder};
               --sf-node-text: ${colors.nodeText};
+              --sf-node-header-text: ${colors.nodeHeaderText};
+              --sf-node-header-ops: ${colors.nodeHeaderOps};
+              --sf-node-header-input: ${colors.nodeHeaderInput};
+              --sf-node-header-output: ${colors.nodeHeaderOutput};
+              --sf-node-selected: ${colors.nodeSelected};
               --sf-edge-line: ${colors.edgeLine};
               --sf-edge-active: ${colors.edgeActive};
               --sf-edge-animated: ${colors.edgeAnimated};
               --sf-port-bg: ${colors.portBackground};
               --sf-port-border: ${colors.portBorder};
+              --sf-port-active: ${colors.portActive};
               --sf-context-bg: ${colors.contextMenuBackground};
               --sf-context-text: ${colors.contextMenuText};
               --sf-context-hover: ${colors.contextMenuHover};
@@ -76,7 +82,7 @@ export class ThemeManager {
               -webkit-user-select: none !important;
           }
         `;
-        
+
         this.styleInjector.innerHTML = cssVars;
         this.container.classList.add(`sci-flow-container-${this.stateManagerId}`);
     }
