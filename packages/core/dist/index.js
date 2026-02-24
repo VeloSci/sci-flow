@@ -78,7 +78,7 @@ var O={name:"light",colors:{background:"#f8f9fa",gridDot:"#d7d9dd",nodeBackgroun
   }
 
   .sci-flow-node-body {
-    padding: 10px;
+    padding: 1px 7px 5px;
     color: #eee;
     font-size: 12px;
     line-height: 1.4;

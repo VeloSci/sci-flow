@@ -1,8 +1,13 @@
 import { Node } from '../types';
 
-export function getPortAnchor(node: Node, portId: string): { x: number, y: number } {
+export function getPortAnchor(node: Node, portId: string, container?: ParentNode | null): { x: number, y: number } {
   // Try to read from DOM first (most accurate)
-  const nodeGroup = document.getElementById(`node-${node.id}`);
+  // Use provided container if available, otherwise fallback to global document
+  const root = container || document;
+  const nodeGroup = (root as any).getElementById 
+    ? (root as Document).getElementById(`node-${node.id}`) 
+    : (root as HTMLElement).querySelector(`#node-${node.id}`);
+  
   if (nodeGroup) {
     const portElement = nodeGroup.querySelector(`[data-portid="${portId}"]`) as SVGCircleElement;
     if (portElement) {
@@ -12,7 +17,6 @@ export function getPortAnchor(node: Node, portId: string): { x: number, y: numbe
         const cx = parseFloat(cxStr);
         const cy = parseFloat(cyStr);
         // If they are exactly 0, they might not be set yet, fall back just in case
-        // unless it's explicitly named 'in0' or 'out0' (though we usually start at 1)
         if (cx !== 0 || cy !== 0 || portId.endsWith('0')) { 
           return { x: node.position.x + cx, y: node.position.y + cy };
         }
@@ -63,8 +67,11 @@ export function getPortAnchor(node: Node, portId: string): { x: number, y: numbe
   }
 
   // Calculate exact position based on port index
+  // portsYOffset is estimated as headerHeight + bodyHeight
+  const bodyHeight = 60; // Accurate estimate for nodes with default fallback padding and text
+  const estimatedPortsOffset = headerHeight + bodyHeight;
   const safeIndex = Math.max(0, portIndex);
-  const portY = headerHeight + 18 + (safeIndex * portSpacing);
+  const portY = estimatedPortsOffset + 13 + (safeIndex * portSpacing);
   
   switch (side) {
       case 'top': return { x: node.position.x + nw / 2, y: node.position.y };

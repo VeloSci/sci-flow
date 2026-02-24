@@ -155,7 +155,7 @@ export class SVGRenderer extends BaseRenderer {
   }
 
   private getPortAnchor(node: Node, portId: string): { x: number, y: number } {
-      return getPortAnchor(node, portId);
+      return getPortAnchor(node, portId, this.nodesGroup);
   }
 
   public getViewportElement(): SVGElement {

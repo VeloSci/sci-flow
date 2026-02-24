@@ -78,7 +78,7 @@
   }
 
   .sci-flow-node-body {
-    padding: 10px;
+    padding: 1px 7px 5px;
     color: #eee;
     font-size: 12px;
     line-height: 1.4;

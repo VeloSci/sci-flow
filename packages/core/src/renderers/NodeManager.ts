@@ -133,14 +133,15 @@ export class NodeManager {
 
         const inPorts = inputIds.map((id, i) => {
             const port = createSVGPort(id, 'in', node.inputs[id]?.dataType || 'any');
-            const y = headerHeight + 18 + (i * portSpacing);
+            // Constant Sync: header (32) + estimated body (60) + 13 center
+            const y = headerHeight + 60 + 13 + (i * portSpacing);
             port.setAttribute('cy', y.toString());
             port.setAttribute('cx', '-6');
             return port;
         });
         const outPorts = outputIds.map((id, i) => {
             const port = createSVGPort(id, 'out', node.outputs[id]?.dataType || 'any');
-            const y = headerHeight + 18 + (i * portSpacing);
+            const y = headerHeight + 60 + 13 + (i * portSpacing);
             port.setAttribute('cy', y.toString());
             port.setAttribute('cx', String(initialWidth + 6));
             return port;
@@ -160,7 +161,6 @@ export class NodeManager {
                 const portsArea = wrapper.querySelector('.sci-flow-node-ports-area') as HTMLDivElement;
                 const portsYOffset = portsArea ? (portsArea.offsetTop) : headerHeight;
 
-                // Sync state if needed
                 // Sync state if dimensions changed
                 const stateNode = stateManager?.getState().nodes.get(node.id);
                 const sizeChanged = stateNode && (Math.abs((stateNode.style?.width || 0) - w) > 1 || Math.abs((stateNode.style?.height || 0) - h) > 1);
@@ -169,15 +169,8 @@ export class NodeManager {
                     stateNode.style = { ...stateNode.style, width: w, height: h };
                 }
 
-                // ALWAYS force an update on the first settlement to fix initial edge misalignment
-                // or if the internal layout shifted (even if outer size is same)
-                const isFirstLayout = !wrapper.dataset.layoutSettled;
-                if (isFirstLayout || sizeChanged) {
-                    wrapper.dataset.layoutSettled = 'true';
-                    stateManager?.forceUpdate();
-                }
-                
-                // Position ports and labels with dynamic spacing
+                // IMPORTANT: Position ports and labels synchronously BEFORE notifying state manager
+                // This ensures edges find the correct 'cy' attributes in the DOM when they re-render.
                 inPorts.forEach((p, i) => {
                     const y = portsYOffset + 13 + (i * portSpacing);
                     p.setAttribute('cy', y.toString());
@@ -220,6 +213,13 @@ export class NodeManager {
                         label.textContent = node.outputs[outputIds[i]]?.label || outputIds[i];
                     }
                 });
+
+                // Notify state manager ONLY after DOM is updated and correct
+                const isFirstLayout = !wrapper.dataset.layoutSettled;
+                if (isFirstLayout || sizeChanged) {
+                    wrapper.dataset.layoutSettled = 'true';
+                    stateManager?.forceUpdate();
+                }
             });
         });
         ro.observe(wrapper);
