@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { useSciFlow, UseSciFlowProps } from './useSciFlow';
-import { Node, SciFlow as SciFlowEngine } from '@sci-flow/core';
+import { useSciFlow, type UseSciFlowProps, type ReactNodeComponent } from './useSciFlow';
+import type { SciFlow as SciFlowEngine } from '@sci-flow/core';
 
 export interface SciFlowProps extends UseSciFlowProps {
     className?: string;
@@ -9,64 +9,53 @@ export interface SciFlowProps extends UseSciFlowProps {
     children?: React.ReactNode;
 }
 
-export function SciFlow({ 
-    className, 
-    style, 
+export function SciFlow({
+    className,
+    style,
     children,
     nodeTypes = [],
-    ...useSciFlowProps 
+    ...useSciFlowProps
 }: SciFlowProps) {
-    
-    // Convert array of React components into a nodeRegistry-compatible map
-    // We expect user to pass components where `type` might be intrinsic or a static property.
-    // For simplicity, we assume they pass a prop or map. 
-    // Wait, the core SciFlow expects `renderHTML` for custom UI.
-    // We already bypass `renderHTML` entirely when building React wrappers because 
-    // we use `portalMounts` instead! The Core will just render an empty `<foreignObject>` Wrapper.
-    
     const { containerRef, portalMounts, nodes, engine } = useSciFlow({ ...useSciFlowProps, nodeTypes });
 
-    // Render registered node Types dynamically mapping Node data to React components
-    // We need a dictionary of React components to render.
+    // Build a lookup map from node type string → React component
     const typeMap = useMemo(() => {
-        const map = new Map<string, React.FC<{ node: Node; engine: SciFlowEngine | null }>>();
-        (nodeTypes as unknown[]).forEach(Comp => {
-            const c = Comp as { nodeType?: string; name?: string; type?: string };
-            const type = c.nodeType || c.type || c.name;
+        const map = new Map<string, ReactNodeComponent>();
+        nodeTypes.forEach(Comp => {
+            const type = Comp.nodeType ?? Comp.type ?? Comp.name;
             if (type) {
-                map.set(type, Comp as React.FC<{ node: Node; engine: SciFlowEngine | null }>);
-                if (c.name) {
-                    map.set(c.name.toLowerCase().replace('node', ''), Comp as React.FC<{ node: Node; engine: SciFlowEngine | null }>);
-                }
+                map.set(type, Comp);
+                // Also register under lowercase-without-"node" suffix for convenience
+                const shortName = type.toLowerCase().replace(/node$/, '');
+                if (shortName !== type) map.set(shortName, Comp);
             }
         });
         return map;
     }, [nodeTypes]);
 
     return (
-        <div 
-            ref={containerRef} 
-            className={`sci-flow-react-container ${className || ''}`} 
+        <div
+            ref={containerRef}
+            className={`sci-flow-react-container ${className ?? ''}`}
             style={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden', ...style }}
         >
-            {/* The canvas/SVG injected by vanilla core will live here */}
-            
-            {/* Portals for mounting React UI into the agnostic vanilla DOM nodes */}
+            {/* Portals for mounting React components into vanilla DOM node bodies */}
             {Array.from(portalMounts.entries()).map(([nodeId, domElement]) => {
                 const nodeData = nodes.find(n => n.id === nodeId);
-                if (!nodeData || !domElement) return null;
-                
-                const NodeComponent = typeMap.get(nodeData.type);
-                
-                if (NodeComponent) {
-                    return createPortal(<NodeComponent key={nodeId} node={nodeData} engine={engine} />, domElement as Element);
-                }
+                if (!nodeData) return null;
 
-                return null;
+                const NodeComponent = typeMap.get(nodeData.type);
+                if (!NodeComponent) return null;
+
+                const engineRef = engine as SciFlowEngine | null;
+                return createPortal(
+                    <NodeComponent key={nodeId} node={nodeData} engine={engineRef} />,
+                    domElement as Element
+                );
             })}
 
-            {/* Optional minimap, context menus, or overlays user passes as children */}
+            {/* Optional overlays, minimap, context menus passed as children */}
             {children}
         </div>
     );
-};
+}
