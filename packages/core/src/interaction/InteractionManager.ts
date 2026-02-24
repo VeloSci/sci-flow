@@ -1,5 +1,5 @@
 import { StateManager } from '../state/StateManager';
-import { Position } from '../types';
+import { Position, ViewportState } from '../types';
 import { PanZoomManager } from './PanZoomManager';
 import { SelectionManager } from './SelectionManager';
 import { ConnectionManager } from './ConnectionManager';
@@ -191,7 +191,7 @@ export class InteractionManager {
         return null;
     }
 
-    private screenToFlow(pos: Position, viewport: any, rect: DOMRect): Position {
+    private screenToFlow(pos: Position, viewport: ViewportState, rect: DOMRect): Position {
         return {
             x: (pos.x - rect.left - viewport.x) / viewport.zoom,
             y: (pos.y - rect.top - viewport.y) / viewport.zoom

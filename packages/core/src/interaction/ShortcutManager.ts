@@ -1,4 +1,5 @@
 import { StateManager } from '../state/StateManager';
+import { Node, Edge } from '../types';
 
 export class ShortcutManager {
     constructor(private stateManager: StateManager) {}
@@ -85,15 +86,15 @@ export class ShortcutManager {
         try {
             const str = e.clipboardData.getData('application/json');
             if (!str) return;
-            const data = JSON.parse(str);
+            const data = JSON.parse(str) as { version: string; nodes: Node[]; edges: Edge[] };
             if (data.version === 'sci-flow-1.0') {
                 e.preventDefault();
                 // Offset pasted nodes slightly to avoid exact overlap
                 const offset = 30;
-                const newNodes: any[] = [];
+                const newNodes: Node[] = [];
                 const idMap = new Map<string, string>();
                 
-                data.nodes.forEach((node: any) => {
+                data.nodes.forEach((node) => {
                     const newId = `${node.id}-copy-${Date.now()}`;
                     idMap.set(node.id, newId);
                     newNodes.push({
@@ -101,7 +102,7 @@ export class ShortcutManager {
                         id: newId,
                         position: { x: node.position.x + offset, y: node.position.y + offset },
                         selected: true
-                    });
+                    } as Node);
                 });
 
                 // Clear selection first

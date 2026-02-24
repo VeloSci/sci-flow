@@ -1,4 +1,4 @@
-import { Edge, FlowState } from '../types';
+import { Edge, FlowState, Node, Position } from '../types';
 import { getEdgePath } from '../utils/edges';
 import { PathfindingWorkerMessageData } from '../workers/pathfinding.worker';
 
@@ -10,10 +10,10 @@ export class EdgeManager {
         private routingHashCache: Map<string, string>,
         private pendingRoutes: Map<string, (path: string) => void>,
         private routerIdCounter: { value: number },
-        private getPortAnchorFn: (node: any, portId: string) => { x: number, y: number }
+        private getPortAnchorFn: (node: Node, portId: string) => Position
     ) {}
 
-    public reconcile(state: FlowState, existingEdgeDocs: Set<string>, obstacles: any[]): void {
+    public reconcile(state: FlowState, existingEdgeDocs: Set<string>, obstacles: Array<{ id: string, x: number, y: number, width: number, height: number }>): void {
 
         state.edges.forEach(edge => {
             const sourceNode = state.nodes.get(edge.source);
@@ -24,7 +24,7 @@ export class EdgeManager {
             const sourcePos = this.getPortAnchorFn(sourceNode, edge.sourceHandle);
             const targetPos = this.getPortAnchorFn(targetNode, edge.targetHandle);
 
-            const routingMode = (edge.type as any) || 'bezier';
+            const routingMode = edge.type || 'bezier';
             let group = document.getElementById(`edge-group-${edge.id}`) as SVGGElement | null;
             
             if (!group) {
@@ -35,7 +35,7 @@ export class EdgeManager {
             // Filter obstacles to exclude source and target nodes to avoid blocking the path start/end
             const filteredObstacles = obstacles.filter(obs => obs.id !== edge.source && obs.id !== edge.target);
 
-            this.updateEdgeVisuals(group, edge, sourcePos, targetPos, routingMode as any, filteredObstacles);
+            this.updateEdgeVisuals(group, edge, sourcePos, targetPos, routingMode, filteredObstacles);
             existingEdgeDocs.delete(`edge-group-${edge.id}`);
         });
     }
@@ -95,7 +95,7 @@ export class EdgeManager {
         
         return group;
     }
-    private updateEdgeVisuals(group: SVGGElement, edge: Edge, sourcePos: any, targetPos: any, routingMode: string, obstacles: any[]): void {
+    private updateEdgeVisuals(group: SVGGElement, edge: Edge, sourcePos: Position, targetPos: Position, routingMode: NonNullable<Edge['type']>, obstacles: Array<{ id: string, x: number, y: number, width: number, height: number }>): void {
         const bgPath = group.querySelector('.sci-flow-edge-bg') as SVGPathElement;
         const fgPath = group.querySelector('.sci-flow-edge-fg') as SVGPathElement;
         const overlayPath = group.querySelector('.sci-flow-edge-overlay') as SVGPathElement;
@@ -119,7 +119,7 @@ export class EdgeManager {
         const customLineStyle = edge.style?.lineStyle || 'solid';
         const customStroke = edge.style?.stroke;
         const customStrokeWidth = edge.style?.strokeWidth;
-        const animType = (edge.style as any)?.animationType || 'dash';
+        const animType = edge.style?.animationType || 'dash';
 
         fgPath.style.stroke = customStroke || (edge.selected ? 'var(--sf-edge-active)' : 'var(--sf-edge-line)');
         fgPath.style.strokeWidth = customStrokeWidth ? `${customStrokeWidth}px` : (edge.selected ? '3px' : '2px');
@@ -213,7 +213,7 @@ export class EdgeManager {
                 } as PathfindingWorkerMessageData);
             }
         } else {
-            const pathString = getEdgePath({ source: sourcePos, target: targetPos, mode: routingMode as any, obstacles: obstacles });
+            const pathString = getEdgePath({ source: sourcePos, target: targetPos, mode: routingMode, obstacles: obstacles });
             setPaths(pathString);
             overlayPath.setAttribute('d', pathString);
             this.routeCache.set(edge.id, pathString);

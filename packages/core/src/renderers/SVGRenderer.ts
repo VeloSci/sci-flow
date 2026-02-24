@@ -1,5 +1,5 @@
 import { BaseRenderer, RendererOptions } from './BaseRenderer';
-import { FlowState, Node } from '../types';
+import { FlowState, Node, Position } from '../types';
 import { getEdgePath } from '../utils/edges';
 import { PathfindingWorkerResponse } from '../workers/pathfinding.worker';
 import { SVG_RENDERER_STYLES } from './SVGRendererStyles';
@@ -7,6 +7,7 @@ import { getPortAnchor } from '../utils/ports';
 import { NodeManager } from './NodeManager';
 import { EdgeManager } from './EdgeManager';
 import { createPathfindingWorker } from '../workers/workerFactory';
+import { NodeDefinition } from '../state/RegistryManager';
 
 export class SVGRenderer extends BaseRenderer {
   private svg: SVGSVGElement;
@@ -63,6 +64,8 @@ export class SVGRenderer extends BaseRenderer {
     this.container.appendChild(this.svg);
 
     this.nodeManager = new NodeManager(this.nodesGroup);
+    
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
     this.edgeManager = new EdgeManager(
         this.edgesGroup, 
@@ -78,17 +81,17 @@ export class SVGRenderer extends BaseRenderer {
     );
   }
 
-  public render(state: FlowState, registry: Map<string, any>): void {
+  public render(state: FlowState, registry: Map<string, NodeDefinition>): void {
     const transform = `translate(${state.viewport.x}, ${state.viewport.y}) scale(${state.viewport.zoom})`;
     this.edgesGroup.setAttribute('transform', transform);
     this.nodesGroup.setAttribute('transform', transform);
 
     const existingNodeDocs = new Set(Array.from(this.nodesGroup.children).map(n => n.id));
-    this.nodeManager.reconcile(state.nodes, existingNodeDocs, (this as any).stateManager, registry);
+    this.nodeManager.reconcile(state.nodes, existingNodeDocs, this.stateManager, registry);
     
     existingNodeDocs.forEach(id => {
       document.getElementById(id)?.remove();
-      const sm = (this as any).stateManager;
+      const sm = this.stateManager;
       // Extract the original node ID from "node-${node.id}"
       const nodeId = id.replace('node-', '');
       if (sm?.onNodeUnmount) sm.onNodeUnmount(nodeId);
@@ -96,10 +99,10 @@ export class SVGRenderer extends BaseRenderer {
 
     const obstacles = Array.from(state.nodes.values()).map(n => ({
         id: n.id,
-        x: (n as any).position.x,
-        y: (n as any).position.y,
-        width: (n as any).style?.width || 140,
-        height: (n as any).style?.height || 100
+        x: n.position.x,
+        y: n.position.y,
+        width: n.style?.width || 140,
+        height: n.style?.height || 100
     }));
 
     const existingEdgeDocs = new Set(Array.from(this.edgesGroup.children).map(n => n.id));
@@ -112,7 +115,7 @@ export class SVGRenderer extends BaseRenderer {
     this.renderDraftEdge(state, obstacles);
   }
 
-  private renderDraftEdge(state: FlowState, obstacles: any[]): void {
+  private renderDraftEdge(state: FlowState, obstacles: Array<{ id: string, x: number, y: number, width: number, height: number }>): void {
     let draftPath = document.getElementById('sci-flow-draft-edge') as SVGPathElement | null;
     if (state.draftEdge) {
         if (!draftPath) {
@@ -144,7 +147,7 @@ export class SVGRenderer extends BaseRenderer {
             const pathString = getEdgePath({ 
                 source: sourcePos, 
                 target: targetPos, 
-                mode: routingMode as any,
+                mode: routingMode,
                 obstacles: filteredObstacles
             });
             draftPath.setAttribute('d', pathString);
@@ -154,7 +157,7 @@ export class SVGRenderer extends BaseRenderer {
     }
   }
 
-  private getPortAnchor(node: Node, portId: string): { x: number, y: number } {
+  private getPortAnchor(node: Node, portId: string): Position {
       return getPortAnchor(node, portId, this.nodesGroup);
   }
 

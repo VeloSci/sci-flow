@@ -1,5 +1,6 @@
 import { BaseRenderer, RendererOptions } from './BaseRenderer';
 import { FlowState } from '../types';
+import { NodeDefinition } from '../state/RegistryManager';
 
 export class CanvasRenderer extends BaseRenderer {
   private canvas: HTMLCanvasElement;
@@ -7,7 +8,7 @@ export class CanvasRenderer extends BaseRenderer {
   private animationFrameId: number | null = null;
   private state: FlowState | null = null;
 
-  private registry: Map<string, any> = new Map();
+  private registry: Map<string, NodeDefinition> = new Map();
 
   constructor(options: RendererOptions) {
     super(options);
@@ -43,7 +44,7 @@ export class CanvasRenderer extends BaseRenderer {
     }
   };
 
-  public render(state: FlowState, registry: Map<string, any>): void {
+  public render(state: FlowState, registry: Map<string, NodeDefinition>): void {
     this.state = state;
     this.registry = registry;
     
@@ -54,7 +55,7 @@ export class CanvasRenderer extends BaseRenderer {
     this.animationFrameId = requestAnimationFrame(() => this.draw(state, registry));
   }
 
-  private draw(state: FlowState, registry: Map<string, any>) {
+  private draw(state: FlowState, registry: Map<string, NodeDefinition>) {
     // Avoid ts-unused-vars warning for registry until implemented
     void registry;
     if (!this.ctx) return;

@@ -12,13 +12,19 @@
     "docs:preview": "vitepress preview docs"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/react": "^19.2.14",
-    "tsup": "^8.0.2",
-    "typescript": "^5.4.5",
-    "vitest": "^1.6.0",
-    "vitepress": "^1.6.4",
+    "@vitejs/plugin-react": "^4.3.4",
+    "esbuild-svelte": "^0.9.4",
+    "eslint": "^10.0.2",
+    "globals": "^17.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "@vitejs/plugin-react": "^4.3.4"
+    "svelte-preprocess": "^6.0.3",
+    "tsup": "^8.0.2",
+    "typescript": "^5.4.5",
+    "typescript-eslint": "^8.56.1",
+    "vitepress": "^1.6.4",
+    "vitest": "^1.6.0"
   }
 }

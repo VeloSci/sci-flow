@@ -4,7 +4,7 @@ export function getPortAnchor(node: Node, portId: string, container?: ParentNode
   // Try to read from DOM first (most accurate)
   // Use provided container if available, otherwise fallback to global document
   const root = container || document;
-  const nodeGroup = (root as any).getElementById 
+  const nodeGroup = 'getElementById' in root
     ? (root as Document).getElementById(`node-${node.id}`) 
     : (root as HTMLElement).querySelector(`#node-${node.id}`);
   
@@ -27,7 +27,7 @@ export function getPortAnchor(node: Node, portId: string, container?: ParentNode
   // Fallback: calculate position (for initial render before DOM is ready)
   const nw = node.style?.width || 140;
   const nh = node.style?.height || 100;
-  const config = (node as any).portConfig || 'left-right';
+  const config = node.portConfig || 'left-right';
 
   // Get port index for positioning multiple ports
   const inputIds = Object.keys(node.inputs || {});
@@ -85,7 +85,7 @@ export function getPortAnchor(node: Node, portId: string, container?: ParentNode
 }
 
 export function getPortClasses(node: Node): { inClass: string, outClass: string } {
-    const config = (node as any).portConfig || 'left-right';
+    const config = node.portConfig || 'left-right';
     let inClass = 'port-left';
     let outClass = 'port-right';
     

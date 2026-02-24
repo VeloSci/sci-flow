@@ -5,7 +5,7 @@ export interface NodeDefinition {
   renderHTML?: (node: Node) => HTMLElement;
   renderCanvas?: (ctx: CanvasRenderingContext2D, node: Node) => void;
   defaultStyle?: Partial<Node['style']>;
-  evaluate?: (inputs: Record<string, any>, nodeData: any) => Record<string, any>;
+  evaluate?: (inputs: Record<string, unknown>, nodeData: Record<string, unknown>) => Record<string, unknown>;
 }
 
 export class RegistryManager {

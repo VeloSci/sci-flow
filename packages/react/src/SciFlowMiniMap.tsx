@@ -27,7 +27,7 @@ export function SciFlowMiniMap({
     useEffect(() => {
         if (!containerRef.current || !engine) return;
 
-        const stateManager = (engine as any).stateManager;
+        const stateManager = engine.stateManager;
         const minimap = new Minimap({
             container: containerRef.current,
             stateManager,

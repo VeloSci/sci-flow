@@ -7,3 +7,7 @@ export * from './plugins/Minimap';
 export * from './renderers/BaseRenderer';
 export * from './renderers/SVGRenderer';
 export * from './renderers/CanvasRenderer';
+
+// Static mount helper for Vanilla JS
+import { SciFlow, type SciFlowOptions } from './engine/SciFlow';
+export const mount = (options: SciFlowOptions) => new SciFlow(options);

@@ -98,7 +98,7 @@ export class DragManager {
             dy = Math.round(dy / this.options.gridSize) * this.options.gridSize;
         }
 
-        this.stateManager.setSmartGuides(guides.length > 0 ? guides : undefined as any);
+        this.stateManager.setSmartGuides(guides.length > 0 ? guides : undefined);
 
         if (dx !== 0 || dy !== 0) {
             const idsToMove = new Set([...this.draggedNodeIds, ...getDescendants(state.nodes, this.draggedNodeIds)]);

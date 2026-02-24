@@ -1,4 +1,4 @@
-import { FlowState, Node, Edge, ViewportState, Position } from '../types';
+import { FlowState, Node, Edge, ViewportState, Position, Connection, OnNodeContextMenu, OnEdgeContextMenu, OnPaneContextMenu } from '../types';
 import { HistoryManager } from './HistoryManager';
 import { RegistryManager, NodeDefinition } from './RegistryManager';
 
@@ -13,9 +13,13 @@ export class StateManager {
 
   public onNodesChange?: (nodes: Node[]) => void;
   public onEdgesChange?: (edges: Edge[]) => void;
-  public onConnect?: (connection: any) => void;
+  public onConnect?: (connection: Connection) => void;
   public onNodeMount?: (nodeId: string, container: HTMLElement) => void;
   public onNodeUnmount?: (nodeId: string) => void;
+  
+  public onNodeContextMenu?: OnNodeContextMenu;
+  public onEdgeContextMenu?: OnEdgeContextMenu;
+  public onPaneContextMenu?: OnPaneContextMenu;
 
   constructor(initialState?: Partial<FlowState>) {
     this.id = Math.random().toString(36).substring(2, 9);
@@ -56,6 +60,18 @@ export class StateManager {
   public setSelection(nodeIds: string[], edgeIds: string[]) {
     this.state.nodes.forEach(n => n.selected = nodeIds.includes(n.id));
     this.state.edges.forEach(e => e.selected = edgeIds.includes(e.id));
+    this.notify();
+  }
+
+  public appendSelection(nodeId?: string, edgeId?: string) {
+    if (nodeId) {
+        const node = this.state.nodes.get(nodeId);
+        if (node) node.selected = true;
+    }
+    if (edgeId) {
+        const edge = this.state.edges.get(edgeId);
+        if (edge) edge.selected = true;
+    }
     this.notify();
   }
 
@@ -148,7 +164,7 @@ export class StateManager {
     this.notify();
   }
 
-  public setDefaultEdgeStyle(style: any) {
+  public setDefaultEdgeStyle(style: Partial<Edge['style']>) {
     this.state.defaultEdgeStyle = { ...this.state.defaultEdgeStyle, ...style };
     this.notify();
   }
@@ -166,9 +182,9 @@ export class StateManager {
     try {
       const data = JSON.parse(jsonString);
       this.state.nodes.clear();
-      if (Array.isArray(data.nodes)) data.nodes.forEach((n: any) => this.state.nodes.set(n.id, n));
+      if (Array.isArray(data.nodes)) data.nodes.forEach((n: Node) => this.state.nodes.set(n.id, n));
       this.state.edges.clear();
-      if (Array.isArray(data.edges)) data.edges.forEach((e: any) => this.state.edges.set(e.id, e));
+      if (Array.isArray(data.edges)) data.edges.forEach((e: Edge) => this.state.edges.set(e.id, e));
       if (data.viewport) this.state.viewport = data.viewport;
       this.notify();
       this.onNodesChange?.(Array.from(this.state.nodes.values()));
@@ -180,7 +196,7 @@ export class StateManager {
   public setViewport(v: ViewportState) { this.state.viewport = v; this.notify(); }
 
   // --- Smart Guides ---
-  public setSmartGuides(guides: { x?: number, y?: number }[]) {
+  public setSmartGuides(guides?: { x?: number, y?: number }[]) {
     this.state.smartGuides = guides;
     this.notify();
   }

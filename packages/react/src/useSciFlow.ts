@@ -5,7 +5,7 @@ export interface UseSciFlowProps extends Omit<SciFlowOptions, 'container'> {
   initialNodes?: Node[];
   initialEdges?: Edge[];
   // Allows registering external custom components from React
-  nodeTypes?: any[]; 
+  nodeTypes?: Array<any>; // eslint-disable-line @typescript-eslint/no-explicit-any
   onNodeContextMenu?: (event: MouseEvent, node: Node) => void;
   onEdgeContextMenu?: (event: MouseEvent, edge: Edge) => void;
   onPaneContextMenu?: (event: MouseEvent) => void;
@@ -33,7 +33,7 @@ export function useSciFlow({ initialNodes = [], initialEdges = [], renderer = 'a
     });
 
     // CRITICAL: Subscribe to engine events BEFORE setting initial nodes/edges
-    const stateManager = (engineRef.current as any).stateManager;
+    const stateManager = engineRef.current.stateManager;
     if (stateManager) {
         stateManager.onNodesChange = (newNodes: Node[]) => setNodesState(newNodes);
         stateManager.onEdgesChange = (newEdges: Edge[]) => setEdgesState(newEdges);
@@ -74,7 +74,7 @@ export function useSciFlow({ initialNodes = [], initialEdges = [], renderer = 'a
   // Watch for Context Menus and update dynamically
   useEffect(() => {
       if (!engineRef.current) return;
-      const stateManager = (engineRef.current as any).stateManager;
+      const stateManager = engineRef.current.stateManager;
       if (options.onNodeContextMenu) stateManager.onNodeContextMenu = options.onNodeContextMenu;
       if (options.onEdgeContextMenu) stateManager.onEdgeContextMenu = options.onEdgeContextMenu;
       if (options.onPaneContextMenu) stateManager.onPaneContextMenu = options.onPaneContextMenu;

@@ -27,7 +27,7 @@ export function useSciFlow(options: UseSciFlowProps = {}) {
     });
 
     // CRITICAL: Subscribe to engine events BEFORE setting initial nodes/edges
-    const stateManager = (engineRef.value as any).stateManager;
+    const stateManager = engineRef.value?.stateManager;
     if (stateManager) {
         stateManager.onNodesChange = (newNodes: Node[]) => { nodes.value = newNodes; };
         stateManager.onEdgesChange = (newEdges: Edge[]) => { edges.value = newEdges; };

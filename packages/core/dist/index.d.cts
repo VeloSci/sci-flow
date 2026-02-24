@@ -38,8 +38,8 @@ type ThemeMode = 'light' | 'dark' | 'system';
 interface NodeWidget {
     id: string;
     type: string;
-    value: any;
-    options?: Record<string, any>;
+    value: unknown;
+    options?: Record<string, unknown>;
 }
 interface Port {
     id: string;
@@ -47,7 +47,7 @@ interface Port {
     dataType: DataType;
     label?: string;
     connectedEdges?: string[];
-    defaultValue?: any;
+    defaultValue?: unknown;
 }
 interface NodeStyle {
     width?: number;
@@ -65,9 +65,9 @@ interface Node {
     position: Position;
     inputs: Record<string, Port>;
     outputs: Record<string, Port>;
-    portConfig?: 'left-right' | 'top-bottom' | 'top-in-bottom-out' | 'bottom-in-top-out' | 'left-in-right-out' | 'right-in-left-out' | 'left-top-in-bottom-right-out' | 'bottom-right-in-left-top-out';
+    portConfig?: 'left-right' | 'top-bottom' | 'top-in-bottom-out' | 'bottom-in-top-out' | 'left-in-right-out' | 'right-in-left-out' | 'left-top-in-bottom-right-out' | 'bottom-right-in-left-top-out' | 'bottom-top';
     widgets?: Record<string, NodeWidget>;
-    data: Record<string, any>;
+    data: Record<string, unknown>;
     logicCode?: string;
     style?: NodeStyle;
     selected?: boolean;
@@ -88,7 +88,7 @@ interface Edge {
         strokeWidth?: number;
         animationType?: 'pulse' | 'arrows' | 'symbols' | 'dash';
     };
-    data?: Record<string, any>;
+    data?: Record<string, unknown>;
 }
 interface FlowState {
     nodes: Map<string, Node>;
@@ -111,6 +111,12 @@ interface FlowState {
         animationType?: 'pulse' | 'arrows' | 'symbols' | 'dash';
     };
 }
+interface Connection {
+    source: string;
+    sourceHandle: string;
+    target: string;
+    targetHandle: string;
+}
 type OnNodesChange = (nodes: Node[]) => void;
 type OnEdgesChange = (edges: Edge[]) => void;
 type OnNodeContextMenu = (event: MouseEvent, node: Node) => void;
@@ -125,7 +131,7 @@ interface NodeDefinition {
     renderHTML?: (node: Node) => HTMLElement;
     renderCanvas?: (ctx: CanvasRenderingContext2D, node: Node) => void;
     defaultStyle?: Partial<Node['style']>;
-    evaluate?: (inputs: Record<string, any>, nodeData: any) => Record<string, any>;
+    evaluate?: (inputs: Record<string, unknown>, nodeData: Record<string, unknown>) => Record<string, unknown>;
 }
 
 type Listener = (state: FlowState) => void;
@@ -137,9 +143,12 @@ declare class StateManager {
     private registry;
     onNodesChange?: (nodes: Node[]) => void;
     onEdgesChange?: (edges: Edge[]) => void;
-    onConnect?: (connection: any) => void;
+    onConnect?: (connection: Connection) => void;
     onNodeMount?: (nodeId: string, container: HTMLElement) => void;
     onNodeUnmount?: (nodeId: string) => void;
+    onNodeContextMenu?: OnNodeContextMenu;
+    onEdgeContextMenu?: OnEdgeContextMenu;
+    onPaneContextMenu?: OnPaneContextMenu;
     constructor(initialState?: Partial<FlowState>);
     registerNodeType(def: NodeDefinition): void;
     getNodeDefinition(type: string): NodeDefinition | undefined;
@@ -152,6 +161,7 @@ declare class StateManager {
     setNodes(nodes: Node[]): void;
     setEdges(edges: Edge[]): void;
     setSelection(nodeIds: string[], edgeIds: string[]): void;
+    appendSelection(nodeId?: string, edgeId?: string): void;
     addNode(node: Node): void;
     setDraftEdge(sourceNodeId: string, sourcePortId: string, targetPosition: Position): void;
     clearDraftEdge(): void;
@@ -165,11 +175,11 @@ declare class StateManager {
     redo(): void;
     private restoreSnapshot;
     setDefaultEdgeType(type: 'straight' | 'bezier' | 'step' | 'smart'): void;
-    setDefaultEdgeStyle(style: any): void;
+    setDefaultEdgeStyle(style: Partial<Edge['style']>): void;
     toJSON(): string;
     fromJSON(jsonString: string): void;
     setViewport(v: ViewportState): void;
-    setSmartGuides(guides: {
+    setSmartGuides(guides?: {
         x?: number;
         y?: number;
     }[]): void;
@@ -184,11 +194,16 @@ interface SciFlowOptions {
     theme?: Partial<Theme> | 'light' | 'dark' | 'system';
     minZoom?: number;
     maxZoom?: number;
-    nodeTypes?: any[];
+    nodeTypes?: Array<(({
+        new (...args: any[]): any;
+        nodeType?: string;
+    }) | {
+        type: string;
+    } | ((props: any) => any))>;
 }
 declare class SciFlow {
     private container;
-    private stateManager;
+    stateManager: StateManager;
     private interactionManager;
     private renderer;
     private gridRenderer;
@@ -209,7 +224,7 @@ declare class SciFlow {
     getState(): FlowState;
     forceUpdate(): void;
     setDefaultEdgeType(type: 'straight' | 'bezier' | 'step' | 'smart'): void;
-    setDefaultEdgeStyle(style: any): void;
+    setDefaultEdgeStyle(style: Partial<Edge['style']>): void;
     subscribe(listener: (state: FlowState) => void): () => void;
     updateNodePosition(id: string, x: number, y: number): void;
     fitView(padding?: number): void;
@@ -252,8 +267,9 @@ interface RendererOptions {
 }
 declare abstract class BaseRenderer {
     protected container: HTMLElement;
+    stateManager?: StateManager;
     constructor(options: RendererOptions);
-    abstract render(state: FlowState, registry: Map<string, any>): void;
+    abstract render(state: FlowState, registry: Map<string, NodeDefinition>): void;
     abstract destroy(): void;
     abstract getViewportElement(): HTMLElement | SVGElement;
 }
@@ -271,7 +287,7 @@ declare class SVGRenderer extends BaseRenderer {
     private nodeManager;
     private edgeManager;
     constructor(options: RendererOptions);
-    render(state: FlowState, registry: Map<string, any>): void;
+    render(state: FlowState, registry: Map<string, NodeDefinition>): void;
     private renderDraftEdge;
     private getPortAnchor;
     getViewportElement(): SVGElement;
@@ -286,10 +302,12 @@ declare class CanvasRenderer extends BaseRenderer {
     private registry;
     constructor(options: RendererOptions);
     private resize;
-    render(state: FlowState, registry: Map<string, any>): void;
+    render(state: FlowState, registry: Map<string, NodeDefinition>): void;
     private draw;
     getViewportElement(): HTMLElement;
     destroy(): void;
 }
 
-export { BaseRenderer, CanvasRenderer, type DataType, type Edge, type FlowState, Minimap, type MinimapOptions, type Node, type NodeDefinition, type NodeStyle, type NodeWidget, type OnEdgeContextMenu, type OnEdgesChange, type OnNodeContextMenu, type OnNodesChange, type OnPaneContextMenu, type Port, type Position, type Rect, type RendererOptions, SVGRenderer, SciFlow, type SciFlowOptions, type Size, StateManager, type Theme, type ThemeMode, type ViewportState, darkTheme, lightTheme };
+declare const mount: (options: SciFlowOptions) => SciFlow;
+
+export { BaseRenderer, CanvasRenderer, type Connection, type DataType, type Edge, type FlowState, Minimap, type MinimapOptions, type Node, type NodeDefinition, type NodeStyle, type NodeWidget, type OnEdgeContextMenu, type OnEdgesChange, type OnNodeContextMenu, type OnNodesChange, type OnPaneContextMenu, type Port, type Position, type Rect, type RendererOptions, SVGRenderer, SciFlow, type SciFlowOptions, type Size, StateManager, type Theme, type ThemeMode, type ViewportState, darkTheme, lightTheme, mount };

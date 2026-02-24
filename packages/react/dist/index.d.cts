@@ -6,7 +6,7 @@ import * as react_jsx_runtime from 'react/jsx-runtime';
 interface UseSciFlowProps extends Omit<SciFlowOptions, 'container'> {
     initialNodes?: Node[];
     initialEdges?: Edge[];
-    nodeTypes?: any[];
+    nodeTypes?: Array<any>;
     onNodeContextMenu?: (event: MouseEvent, node: Node) => void;
     onEdgeContextMenu?: (event: MouseEvent, edge: Edge) => void;
     onPaneContextMenu?: (event: MouseEvent) => void;

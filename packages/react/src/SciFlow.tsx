@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useSciFlow, UseSciFlowProps } from './useSciFlow';
+import { Node, SciFlow as SciFlowEngine } from '@sci-flow/core';
 
 export interface SciFlowProps extends UseSciFlowProps {
     className?: string;
@@ -28,15 +29,15 @@ export function SciFlow({
     // Render registered node Types dynamically mapping Node data to React components
     // We need a dictionary of React components to render.
     const typeMap = useMemo(() => {
-        const map = new Map<string, React.FC<any>>();
-        nodeTypes.forEach(Comp => {
-            if ((Comp as any).nodeType) {
-                map.set((Comp as any).nodeType, Comp);
-            }
-            if (Comp.name) {
-                map.set(Comp.name, Comp);
-                // Normalization for common lowercase prototypes (e.g. GeneratorNode -> generator)
-                map.set(Comp.name.toLowerCase().replace('node', ''), Comp);
+        const map = new Map<string, React.FC<{ node: Node; engine: SciFlowEngine | null }>>();
+        (nodeTypes as unknown[]).forEach(Comp => {
+            const c = Comp as { nodeType?: string; name?: string; type?: string };
+            const type = c.nodeType || c.type || c.name;
+            if (type) {
+                map.set(type, Comp as React.FC<{ node: Node; engine: SciFlowEngine | null }>);
+                if (c.name) {
+                    map.set(c.name.toLowerCase().replace('node', ''), Comp as React.FC<{ node: Node; engine: SciFlowEngine | null }>);
+                }
             }
         });
         return map;

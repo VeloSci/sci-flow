@@ -95,12 +95,13 @@ function SciFlow2({
   const typeMap = useMemo(() => {
     const map = /* @__PURE__ */ new Map();
     nodeTypes.forEach((Comp) => {
-      if (Comp.nodeType) {
-        map.set(Comp.nodeType, Comp);
-      }
-      if (Comp.name) {
-        map.set(Comp.name, Comp);
-        map.set(Comp.name.toLowerCase().replace("node", ""), Comp);
+      const c = Comp;
+      const type = c.nodeType || c.type || c.name;
+      if (type) {
+        map.set(type, Comp);
+        if (c.name) {
+          map.set(c.name.toLowerCase().replace("node", ""), Comp);
+        }
       }
     });
     return map;

@@ -3,7 +3,7 @@
  * This prevents the code from accessing the global `window`, `document`,
  * or other sensitive APIs, enabling secure "code nodes" evaluation.
  */
-export const evaluateSafe = (code: string, context: Record<string, any> = {}): any => {
+export const evaluateSafe = (code: string, context: Record<string, unknown> = {}): unknown => {
     try {
         // Create an array of keys to inject as local variables
         const keys = Object.keys(context);

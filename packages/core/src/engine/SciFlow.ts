@@ -14,12 +14,12 @@ export interface SciFlowOptions {
   theme?: Partial<Theme> | 'light' | 'dark' | 'system';
   minZoom?: number;
   maxZoom?: number;
-  nodeTypes?: any[];
+  nodeTypes?: Array<(({ new (...args: any[]): any; nodeType?: string }) | { type: string } | ((props: any) => any))>; // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
 export class SciFlow {
   private container: HTMLElement;
-  private stateManager: StateManager;
+  public stateManager: StateManager;
   private interactionManager: InteractionManager;
   private renderer: BaseRenderer;
   private gridRenderer: GridRenderer;
@@ -55,17 +55,20 @@ export class SciFlow {
     // Initial renderer setup
     const initialRendererType = this.options.renderer === 'auto' ? 'svg' : (this.options.renderer || 'svg');
     this.renderer = this.createRenderer(initialRendererType);
-    (this.renderer as any).stateManager = this.stateManager;
+    this.renderer.stateManager = this.stateManager;
 
     // Register node types if provided in options
     if (this.options.nodeTypes && Array.isArray(this.options.nodeTypes)) {
-        this.options.nodeTypes.forEach((Comp: any) => {
+        this.options.nodeTypes.forEach((Comp) => {
             const types = new Set<string>();
-            if (Comp.nodeType) types.add(Comp.nodeType);
-            if (Comp.name) {
-                types.add(Comp.name);
+            const c = Comp as Record<string, unknown>;
+            
+            if (typeof c.nodeType === 'string') types.add(c.nodeType);
+            if (typeof c.type === 'string') types.add(c.type);
+            if (typeof c.name === 'string') {
+                types.add(c.name);
                 // Also add a version that might match common lowercase prototypes
-                types.add(Comp.name.toLowerCase().replace('node', ''));
+                types.add(c.name.toLowerCase().replace('node', ''));
             }
             
             types.forEach(type => {
@@ -151,7 +154,7 @@ export class SciFlow {
     this.stateManager.setDefaultEdgeType(type);
   }
 
-  public setDefaultEdgeStyle(style: any) {
+  public setDefaultEdgeStyle(style: Partial<Edge['style']>) {
     this.stateManager.setDefaultEdgeStyle(style);
   }
 

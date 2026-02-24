@@ -46,8 +46,8 @@ export type ThemeMode = 'light' | 'dark' | 'system';
 export interface NodeWidget {
   id: string;
   type: string; // e.g., 'number-input', 'color-picker', 'custom-html'
-  value: any;
-  options?: Record<string, any>; // Configuration for the widget
+  value: unknown;
+  options?: Record<string, unknown>; // Configuration for the widget
 }
 
 export interface Port {
@@ -56,7 +56,7 @@ export interface Port {
   dataType: DataType;
   label?: string;
   connectedEdges?: string[]; // Edge IDs connected to this port
-  defaultValue?: any; // Value to use if no edge is connected
+  defaultValue?: unknown; // Value to use if no edge is connected
 }
 
 export interface NodeStyle {
@@ -79,13 +79,13 @@ export interface Node {
   // Dynamic port routing
   inputs: Record<string, Port>;
   outputs: Record<string, Port>;
-  portConfig?: 'left-right' | 'top-bottom' | 'top-in-bottom-out' | 'bottom-in-top-out' | 'left-in-right-out' | 'right-in-left-out' | 'left-top-in-bottom-right-out' | 'bottom-right-in-left-top-out';
+  portConfig?: 'left-right' | 'top-bottom' | 'top-in-bottom-out' | 'bottom-in-top-out' | 'left-in-right-out' | 'right-in-left-out' | 'left-top-in-bottom-right-out' | 'bottom-right-in-left-top-out' | 'bottom-top';
   
   // Custom interactive widgets (Blender-like controls)
   widgets?: Record<string, NodeWidget>;
 
   // Internal data/state managed by the node
-  data: Record<string, any>;
+  data: Record<string, unknown>;
   
   // Sandboxed logic to execute
   logicCode?: string;
@@ -110,7 +110,7 @@ export interface Edge {
     strokeWidth?: number;
     animationType?: 'pulse' | 'arrows' | 'symbols' | 'dash';
   };
-  data?: Record<string, any>;
+  data?: Record<string, unknown>;
 }
 
 export interface FlowState {
@@ -126,6 +126,13 @@ export interface FlowState {
     strokeWidth?: number;
     animationType?: 'pulse' | 'arrows' | 'symbols' | 'dash';
   };
+}
+
+export interface Connection {
+  source: string;
+  sourceHandle: string;
+  target: string;
+  targetHandle: string;
 }
 
 export type OnNodesChange = (nodes: Node[]) => void;

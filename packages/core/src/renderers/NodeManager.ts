@@ -1,4 +1,6 @@
 import { Node } from '../types';
+import { StateManager } from '../state/StateManager';
+import { NodeDefinition } from '../state/RegistryManager';
 
 export class NodeManager {
     constructor(
@@ -8,8 +10,8 @@ export class NodeManager {
     public reconcile(
         nodes: Map<string, Node>, 
         existingNodeDocs: Set<string>, 
-        stateManager: any, 
-        registry: Map<string, any>
+        stateManager: StateManager | undefined, 
+        registry: Map<string, NodeDefinition>
     ): void {
         nodes.forEach(node => {
             let g = document.getElementById(`node-${node.id}`) as SVGGElement | null;
@@ -58,7 +60,7 @@ export class NodeManager {
         });
     }
 
-    private createNodeElement(node: Node, stateManager: any, registry: Map<string, any>): SVGGElement {
+    private createNodeElement(node: Node, stateManager: StateManager | undefined, registry: Map<string, NodeDefinition>): SVGGElement {
         const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         g.id = `node-${node.id}`;
         g.setAttribute('class', 'sci-flow-node');

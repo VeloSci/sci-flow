@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { SciFlow, SciFlowMiniMap } from '@sci-flow/react';
+import { SciFlow as ReactSciFlow, SciFlowMiniMap } from '@sci-flow/react';
+import type { Node, Edge, SciFlow } from '@sci-flow/core';
 import { MathNode } from './components/MathNode';
 import { GeneratorNode, ProcessorNode, CombinerNode, ViewerNode, MultiNode } from './components/NodeTypes';
 
-const initialNodes: any[] = [
+const initialNodes: Node[] = [
   {
     id: 'n1',
     type: 'generator',
@@ -33,14 +34,14 @@ const initialNodes: any[] = [
   }
 ];
 
-const initialEdges: any[] = [
+const initialEdges: Edge[] = [
   { id: 'e1', source: 'n1', target: 'n2', sourceHandle: 'out1', targetHandle: 'in1', animated: true, type: 'smart' },
   { id: 'e2', source: 'n2', target: 'n3', sourceHandle: 'high', targetHandle: 'in1', type: 'bezier' }
 ];
 
 function App() {
   const [themeMode, setThemeMode] = useState<'light' | 'dark'>('dark');
-  const [engine, setEngine] = useState<any>(null);
+  const [engine, setEngine] = useState<SciFlow | null>(null);
 
   const handleDownload = () => {
       if (!engine) return;
@@ -172,13 +173,13 @@ function App() {
                             key={style}
                             onClick={() => {
                                 if (!engine) return;
-                                engine.setDefaultEdgeStyle({ lineStyle: style });
-                                
-                                // Also apply to all existing edges
-                                const state = engine.getState();
-                                state.edges.forEach((edge: any) => {
-                                    edge.style = { ...edge.style, lineStyle: style };
-                                });
+                                 engine.setDefaultEdgeStyle({ lineStyle: style as 'solid' | 'dashed' | 'dotted' });
+                                 
+                                 // Also apply to all existing edges
+                                 const state = engine.getState();
+                                 state.edges.forEach((edge) => {
+                                     edge.style = { ...edge.style, lineStyle: style as 'solid' | 'dashed' | 'dotted' };
+                                 });
                                 engine.forceUpdate();
                             }}
                             style={{ flex: 1, padding: '4px', fontSize: '11px', background: '#333', color: '#fff', border: '1px solid #444', borderRadius: '4px', cursor: 'pointer' }}
@@ -190,7 +191,7 @@ function App() {
             </div>
         </div>
 
-        <SciFlow 
+        <ReactSciFlow 
             initialNodes={initialNodes}
             initialEdges={initialEdges}
             renderer="auto"
@@ -198,8 +199,8 @@ function App() {
             minZoom={0.2}
             maxZoom={4}
             nodeTypes={[MathNode, GeneratorNode, ProcessorNode, CombinerNode, ViewerNode, MultiNode]}
-            onNodeContextMenu={(e: any, n: any) => { e.preventDefault(); alert(`Right clicked ${n.id}`); }}
-            onInit={(engineInstance: any) => setEngine(engineInstance)}
+            onNodeContextMenu={(e, n) => { e.preventDefault(); alert(`Right clicked ${n.id}`); }}
+            onInit={(engineInstance) => setEngine(engineInstance)}
         />
         
         {/* React Minimap wrapper automatically syncing with engine */}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { doRectsIntersect, getCenter, pointInRect, screenToFlowPosition, distance } from './geometry';
+import { doRectsIntersect, getCenter, pointInRect, distance } from './geometry';
 
 describe('Geometry Utils', () => {
   it('should correctly calculate rect intersection', () => {

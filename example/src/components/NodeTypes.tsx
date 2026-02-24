@@ -1,5 +1,12 @@
+import React from 'react';
+import type { Node, SciFlow } from '@sci-flow/core';
 
-export const GeneratorNode = () => (
+export interface NodeComponentProps {
+    node: Node;
+    engine: SciFlow | null;
+}
+
+export const GeneratorNode: React.FC<NodeComponentProps> = () => (
     <div style={{ padding: '0px' }}>
         <p style={{ margin: '0 0 8px 0', fontSize: '11px', color: '#888' }}>Outputs a constant signal.</p>
         <div style={{ padding: 8, background: '#1a1a1a', borderRadius: 4, textAlign: 'center' }}>
@@ -9,21 +16,21 @@ export const GeneratorNode = () => (
 );
 (GeneratorNode as any).nodeType = 'generator';
 
-export const ProcessorNode = () => (
+export const ProcessorNode: React.FC<NodeComponentProps> = () => (
     <div style={{ padding: '0px' }}>
         <p style={{ margin: 0, fontSize: '11px', color: '#888' }}>Processes signal into filtered streams.</p>
     </div>
 );
 (ProcessorNode as any).nodeType = 'processor';
 
-export const CombinerNode = () => (
+export const CombinerNode: React.FC<NodeComponentProps> = () => (
     <div style={{ padding: '0px' }}>
         <p style={{ margin: 0, fontSize: '11px', color: '#888' }}>Combines 2 signals into 1.</p>
     </div>
 );
 (CombinerNode as any).nodeType = 'combiner';
 
-export const ViewerNode = () => (
+export const ViewerNode: React.FC<NodeComponentProps> = () => (
     <div style={{ padding: '0px' }}>
         <p style={{ margin: '0 0 8px 0', fontSize: '11px', color: '#888' }}>Visualizes input data.</p>
         <div style={{ width: '100%', height: 40, background: '#000', borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
