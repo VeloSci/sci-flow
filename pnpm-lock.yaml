@@ -11,12 +11,30 @@ importers:
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.0.2)
+      '@sci-flow/core':
+        specifier: workspace:*
+        version: link:packages/core
+      '@sci-flow/react':
+        specifier: workspace:*
+        version: link:packages/react
+      '@sci-flow/svelte':
+        specifier: workspace:*
+        version: link:packages/svelte
+      '@sci-flow/vue':
+        specifier: workspace:*
+        version: link:packages/vue
+      '@sveltejs/vite-plugin-svelte':
+        specifier: ^3.1.2
+        version: 3.1.2(svelte@5.53.3)(vite@8.0.0-beta.15(@types/node@25.3.0)(esbuild@0.27.3))
       '@types/react':
         specifier: ^19.2.14
         version: 19.2.14
       '@vitejs/plugin-react':
         specifier: ^4.3.4
         version: 4.7.0(vite@8.0.0-beta.15(@types/node@25.3.0)(esbuild@0.27.3))
+      '@vitejs/plugin-vue':
+        specifier: ^5.2.4
+        version: 5.2.4(vite@8.0.0-beta.15(@types/node@25.3.0)(esbuild@0.27.3))(vue@3.5.28(typescript@5.9.3))
       esbuild-svelte:
         specifier: ^0.9.4
         version: 0.9.4(esbuild@0.27.3)(svelte@5.53.3)
@@ -32,9 +50,9 @@ importers:
       react-dom:
         specifier: ^19.0.0
         version: 19.2.4(react@19.2.4)
-      svelte-preprocess:
-        specifier: ^6.0.3
-        version: 6.0.3(@babel/core@7.29.0)(postcss-load-config@6.0.1(postcss@8.5.6))(postcss@8.5.6)(svelte@5.53.3)(typescript@5.9.3)
+      svelte:
+        specifier: ^5.0.0
+        version: 5.53.3
       tsup:
         specifier: ^8.0.2
         version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
@@ -50,6 +68,9 @@ importers:
       vitest:
         specifier: ^1.6.0
         version: 1.6.1(@types/node@25.3.0)(lightningcss@1.31.1)
+      vue:
+        specifier: ^3.5.0
+        version: 3.5.28(typescript@5.9.3)
 
   example:
     dependencies:
@@ -125,12 +146,18 @@ importers:
         specifier: workspace:*
         version: link:../core
     devDependencies:
+      esbuild-svelte:
+        specifier: ^0.9.4
+        version: 0.9.4(esbuild@0.27.3)(svelte@5.53.3)
       eslint:
         specifier: ^10.0.2
         version: 10.0.2
       svelte:
         specifier: ^5.0.0
         version: 5.53.3
+      svelte-preprocess:
+        specifier: ^6.0.3
+        version: 6.0.3(@babel/core@7.29.0)(postcss-load-config@6.0.1(postcss@8.5.6))(postcss@8.5.6)(svelte@5.53.3)(typescript@5.9.3)
       tsup:
         specifier: ^8.0.2
         version: 8.5.1(postcss@8.5.6)(typescript@5.9.3)
@@ -981,6 +1008,21 @@ packages:
     peerDependencies:
       acorn: ^8.9.0
 
+  '@sveltejs/vite-plugin-svelte-inspector@2.1.0':
+    resolution: {integrity: sha512-9QX28IymvBlSCqsCll5t0kQVxipsfhFFL+L2t3nTWfXnddYwxBuAEtTtlaVQpRz9c37BhJjltSeY4AJSC03SSg==}
+    engines: {node: ^18.0.0 || >=20}
+    peerDependencies:
+      '@sveltejs/vite-plugin-svelte': ^3.0.0
+      svelte: ^4.0.0 || ^5.0.0-next.0
+      vite: ^5.0.0
+
+  '@sveltejs/vite-plugin-svelte@3.1.2':
+    resolution: {integrity: sha512-Txsm1tJvtiYeLUVRNqxZGKR/mI+CzuIQuc2gn+YCs9rMTowpNZ2Nqt53JdL8KF9bLhAf2ruR/dr9eZCwdTriRA==}
+    engines: {node: ^18.0.0 || >=20}
+    peerDependencies:
+      svelte: ^4.0.0 || ^5.0.0-next.0
+      vite: ^5.0.0
+
   '@tybys/wasm-util@0.10.1':
     resolution: {integrity: sha512-9tTaPJLSiejZKx+Bmog4uSubteqTvFrVrURwkmHixBo0G4seD0zUxp98E1DzUBJxLQ3NPwXrGKDiVjwx/DpPsg==}
 
@@ -1452,6 +1494,10 @@ packages:
   deep-is@0.1.4:
     resolution: {integrity: sha512-oIPzksmTg4/MriiaYGO+okXDT7ztn/w3Eptv/+gSIdMdKsJo0u4CfYNFJPy+4SKMuCqGw2wxnA+URMg3t8a/bQ==}
 
+  deepmerge@4.3.1:
+    resolution: {integrity: sha512-3sUqbMEc77XqpdNO7FRyRog+eW3ph+GYCbj+rK+uYyRMuwsVy0rMiVtPn+QJlKFvWP/1PYpapqYn0Me2knFn+A==}
+    engines: {node: '>=0.10.0'}
+
   define-data-property@1.1.4:
     resolution: {integrity: sha512-rBMvIzlpA8v6E+SJZoo++HAYqsLrkg7MSfIinMPFhmkorw7X+dOXVJQs+QT69zGkzMyfDnIMN2Wid1+NbL3T+A==}
     engines: {node: '>= 0.4'}
@@ -1922,6 +1968,10 @@ packages:
 
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
+
+  kleur@4.1.5:
+    resolution: {integrity: sha512-o+NO+8WrRiQEE4/7nwRJhN1HWpVmJm511pBHUxPLtp0BUISzlBplORYSmTclCnJvQq2tKu/sgl3xVpkc7ZWuQQ==}
+    engines: {node: '>=6'}
 
   levn@0.4.1:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
@@ -2526,6 +2576,12 @@ packages:
     resolution: {integrity: sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w==}
     engines: {node: '>= 0.4'}
 
+  svelte-hmr@0.16.0:
+    resolution: {integrity: sha512-Gyc7cOS3VJzLlfj7wKS0ZnzDVdv3Pn2IuVeJPk9m2skfhcu5bq3wtIZyQGggr7/Iim5rH5cncyQft/kRLupcnA==}
+    engines: {node: ^12.20 || ^14.13.1 || >= 16}
+    peerDependencies:
+      svelte: ^3.19.0 || ^4.0.0
+
   svelte-preprocess@6.0.3:
     resolution: {integrity: sha512-PLG2k05qHdhmRG7zR/dyo5qKvakhm8IJ+hD2eFRQmMLHp7X3eJnjeupUtvuRpbNiF31RjVw45W+abDwHEmP5OA==}
     engines: {node: '>= 18.0.0'}
@@ -2799,6 +2855,14 @@ packages:
       tsx:
         optional: true
       yaml:
+        optional: true
+
+  vitefu@0.2.5:
+    resolution: {integrity: sha512-SgHtMLoqaeeGnd2evZ849ZbACbnwQCIwRH57t18FxcXoZop0uQu0uzlIhJBlF/eWVzuce0sHeqPcDo+evVcg8Q==}
+    peerDependencies:
+      vite: ^3.0.0 || ^4.0.0 || ^5.0.0
+    peerDependenciesMeta:
+      vite:
         optional: true
 
   vitepress@1.6.4:
@@ -3576,6 +3640,29 @@ snapshots:
     dependencies:
       acorn: 8.16.0
 
+  '@sveltejs/vite-plugin-svelte-inspector@2.1.0(@sveltejs/vite-plugin-svelte@3.1.2(svelte@5.53.3)(vite@8.0.0-beta.15(@types/node@25.3.0)(esbuild@0.27.3)))(svelte@5.53.3)(vite@8.0.0-beta.15(@types/node@25.3.0)(esbuild@0.27.3))':
+    dependencies:
+      '@sveltejs/vite-plugin-svelte': 3.1.2(svelte@5.53.3)(vite@8.0.0-beta.15(@types/node@25.3.0)(esbuild@0.27.3))
+      debug: 4.4.3
+      svelte: 5.53.3
+      vite: 8.0.0-beta.15(@types/node@25.3.0)(esbuild@0.27.3)
+    transitivePeerDependencies:
+      - supports-color
+
+  '@sveltejs/vite-plugin-svelte@3.1.2(svelte@5.53.3)(vite@8.0.0-beta.15(@types/node@25.3.0)(esbuild@0.27.3))':
+    dependencies:
+      '@sveltejs/vite-plugin-svelte-inspector': 2.1.0(@sveltejs/vite-plugin-svelte@3.1.2(svelte@5.53.3)(vite@8.0.0-beta.15(@types/node@25.3.0)(esbuild@0.27.3)))(svelte@5.53.3)(vite@8.0.0-beta.15(@types/node@25.3.0)(esbuild@0.27.3))
+      debug: 4.4.3
+      deepmerge: 4.3.1
+      kleur: 4.1.5
+      magic-string: 0.30.21
+      svelte: 5.53.3
+      svelte-hmr: 0.16.0(svelte@5.53.3)
+      vite: 8.0.0-beta.15(@types/node@25.3.0)(esbuild@0.27.3)
+      vitefu: 0.2.5(vite@8.0.0-beta.15(@types/node@25.3.0)(esbuild@0.27.3))
+    transitivePeerDependencies:
+      - supports-color
+
   '@tybys/wasm-util@0.10.1':
     dependencies:
       tslib: 2.8.1
@@ -3774,6 +3861,11 @@ snapshots:
   '@vitejs/plugin-vue@5.2.4(vite@5.4.21(@types/node@25.3.0)(lightningcss@1.31.1))(vue@3.5.28(typescript@5.9.3))':
     dependencies:
       vite: 5.4.21(@types/node@25.3.0)(lightningcss@1.31.1)
+      vue: 3.5.28(typescript@5.9.3)
+
+  '@vitejs/plugin-vue@5.2.4(vite@8.0.0-beta.15(@types/node@25.3.0)(esbuild@0.27.3))(vue@3.5.28(typescript@5.9.3))':
+    dependencies:
+      vite: 8.0.0-beta.15(@types/node@25.3.0)(esbuild@0.27.3)
       vue: 3.5.28(typescript@5.9.3)
 
   '@vitest/expect@1.6.1':
@@ -4145,6 +4237,8 @@ snapshots:
       type-detect: 4.1.0
 
   deep-is@0.1.4: {}
+
+  deepmerge@4.3.1: {}
 
   define-data-property@1.1.4:
     dependencies:
@@ -4723,6 +4817,8 @@ snapshots:
   keyv@4.5.4:
     dependencies:
       json-buffer: 3.0.1
+
+  kleur@4.1.5: {}
 
   levn@0.4.1:
     dependencies:
@@ -5369,6 +5465,10 @@ snapshots:
 
   supports-preserve-symlinks-flag@1.0.0: {}
 
+  svelte-hmr@0.16.0(svelte@5.53.3):
+    dependencies:
+      svelte: 5.53.3
+
   svelte-preprocess@6.0.3(@babel/core@7.29.0)(postcss-load-config@6.0.1(postcss@8.5.6))(postcss@8.5.6)(svelte@5.53.3)(typescript@5.9.3):
     dependencies:
       svelte: 5.53.3
@@ -5641,6 +5741,10 @@ snapshots:
       '@types/node': 25.3.0
       esbuild: 0.27.3
       fsevents: 2.3.3
+
+  vitefu@0.2.5(vite@8.0.0-beta.15(@types/node@25.3.0)(esbuild@0.27.3)):
+    optionalDependencies:
+      vite: 8.0.0-beta.15(@types/node@25.3.0)(esbuild@0.27.3)
 
   vitepress@1.6.4(@algolia/client-search@5.49.0)(@types/node@25.3.0)(@types/react@19.2.14)(lightningcss@1.31.1)(postcss@8.5.6)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(search-insights@2.17.3)(typescript@5.9.3):
     dependencies:

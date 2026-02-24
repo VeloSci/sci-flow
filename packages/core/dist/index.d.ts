@@ -22,11 +22,17 @@ interface Theme {
         nodeBackground: string;
         nodeBorder: string;
         nodeText: string;
+        nodeHeaderText: string;
+        nodeHeaderOps: string;
+        nodeHeaderInput: string;
+        nodeHeaderOutput: string;
+        nodeSelected: string;
         edgeLine: string;
         edgeActive: string;
         edgeAnimated: string;
         portBackground: string;
         portBorder: string;
+        portActive: string;
         contextMenuBackground: string;
         contextMenuText: string;
         contextMenuHover: string;
@@ -94,6 +100,7 @@ interface FlowState {
     nodes: Map<string, Node>;
     edges: Map<string, Edge>;
     viewport: ViewportState;
+    direction: 'horizontal' | 'vertical';
     draftEdge?: {
         sourceNodeId: string;
         sourcePortId: string;
@@ -176,6 +183,8 @@ declare class StateManager {
     private restoreSnapshot;
     setDefaultEdgeType(type: 'straight' | 'bezier' | 'step' | 'smart'): void;
     setDefaultEdgeStyle(style: Partial<Edge['style']>): void;
+    setDirection(dir: 'horizontal' | 'vertical'): void;
+    private autoLayout;
     toJSON(): string;
     fromJSON(jsonString: string): void;
     setViewport(v: ViewportState): void;
@@ -192,14 +201,9 @@ interface SciFlowOptions {
     renderer?: 'svg' | 'canvas' | 'auto';
     autoSwitchThreshold?: number;
     theme?: Partial<Theme> | 'light' | 'dark' | 'system';
+    direction?: 'horizontal' | 'vertical';
     minZoom?: number;
     maxZoom?: number;
-    nodeTypes?: Array<(({
-        new (...args: any[]): any;
-        nodeType?: string;
-    }) | {
-        type: string;
-    } | ((props: any) => any))>;
 }
 declare class SciFlow {
     private container;
@@ -215,6 +219,7 @@ declare class SciFlow {
     private checkRendererThreshold;
     private switchRenderer;
     setTheme(themeOpt?: Partial<Theme> | 'light' | 'dark' | 'system'): void;
+    setDirection(dir: 'horizontal' | 'vertical'): void;
     setNodes(nodes: Node[]): void;
     setEdges(edges: Edge[]): void;
     addNode(node: Node): void;
