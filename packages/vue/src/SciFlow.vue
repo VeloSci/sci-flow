@@ -22,7 +22,7 @@ const props = defineProps<{
     nodeTypes?: Record<string, Component>;
 }>();
 
-const { portalMounts, nodes, engine } = useSciFlow({
+const { containerRef, portalMounts, nodes, engine } = useSciFlow({
     initialNodes: props.initialNodes,
     initialEdges: props.initialEdges,
     renderer: props.renderer,
