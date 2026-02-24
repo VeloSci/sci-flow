@@ -13,18 +13,25 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@sci-flow/core": "workspace:*",
+    "@sci-flow/react": "workspace:*",
+    "@sci-flow/svelte": "workspace:*",
+    "@sci-flow/vue": "workspace:*",
+    "@sveltejs/vite-plugin-svelte": "^3.1.2",
     "@types/react": "^19.2.14",
     "@vitejs/plugin-react": "^4.3.4",
+    "@vitejs/plugin-vue": "^5.2.4",
     "esbuild-svelte": "^0.9.4",
     "eslint": "^10.0.2",
     "globals": "^17.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "svelte-preprocess": "^6.0.3",
+    "svelte": "^5.0.0",
     "tsup": "^8.0.2",
     "typescript": "^5.4.5",
     "typescript-eslint": "^8.56.1",
     "vitepress": "^1.6.4",
-    "vitest": "^1.6.0"
+    "vitest": "^1.6.0",
+    "vue": "^3.5.0"
   }
 }

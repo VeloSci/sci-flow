@@ -3,7 +3,11 @@
     "target": "ES2022",
     "useDefineForClassFields": true,
     "module": "ESNext",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "skipLibCheck": true,
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
@@ -14,6 +18,21 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "baseUrl": ".",
+    "paths": {
+      "@sci-flow/core": [
+        "packages/core/src/index.ts"
+      ],
+      "@sci-flow/react": [
+        "packages/react/src/index.ts"
+      ],
+      "@sci-flow/svelte": [
+        "packages/svelte/src/index.ts"
+      ],
+      "@sci-flow/vue": [
+        "packages/vue/src/index.ts"
+      ]
+    }
   }
 }
