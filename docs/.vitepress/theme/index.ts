@@ -1,6 +1,7 @@
 import DefaultTheme from 'vitepress/theme'
 import InteractiveFlow from './components/InteractiveFlow.vue'
 import SciFlowPlayground from './components/SciFlowPlayground.vue'
+import './custom.css'
 
 export default {
   extends: DefaultTheme,

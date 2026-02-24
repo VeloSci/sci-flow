@@ -1,0 +1,186 @@
+/* ============================================
+   sci-flow Documentation - Technical Theme
+   Inspired by scichart-engine
+   ============================================ */
+
+:root {
+  /* Brand Colors - Emerald / Blue Palette */
+  --vp-c-brand: #10b981;
+  --vp-c-brand-light: #34d399;
+  --vp-c-brand-dark: #059669;
+  --vp-c-brand-lighter: #6ee7b7;
+  --vp-c-brand-darker: #065f46;
+
+  /* Accent Blue */
+  --sci-accent-blue: #3b82f6;
+  --sci-accent-blue-light: #60a5fa;
+  --sci-accent-blue-dark: #2563eb;
+
+  /* Gradients */
+  --sci-gradient-brand: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+  --sci-gradient-glow: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, rgba(59, 130, 246, 0.08) 50%, transparent 100%);
+
+  /* Glassmorphism */
+  --sci-glass-bg: rgba(255, 255, 255, 0.4);
+  --sci-glass-border: rgba(0, 0, 0, 0.05);
+  --sci-glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
+
+  /* Surface Colors */
+  --sci-surface-1: #ffffff;
+  --sci-surface-2: #fcfdfe;
+  --sci-surface-3: #f8fafc;
+
+  /* Text */
+  --sci-text-primary: #1e293b;
+  --sci-text-secondary: #64748b;
+  --sci-text-muted: #94a3b8;
+
+  /* Borders */
+  --sci-border: #e2e8f0;
+  --sci-border-hover: #cbd5e1;
+
+  /* Layout */
+  --sci-layout-max-width: 1400px;
+  --sci-layout-padding: 32px;
+  
+  --vp-nav-max-width: var(--sci-layout-max-width) !important;
+  --vp-layout-max-width: var(--sci-layout-max-width) !important;
+}
+
+.dark {
+  --sci-glass-bg: rgba(15, 20, 30, 0.75);
+  --sci-glass-border: rgba(255, 255, 255, 0.08);
+  --sci-glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+
+  --sci-surface-1: #0b0e14;
+  --sci-surface-2: #0f1318;
+  --sci-surface-3: #151a22;
+
+  --sci-text-primary: #f1f5f9;
+  --sci-text-secondary: #94a3b8;
+  --sci-text-muted: #64748b;
+
+  --sci-border: #1e2634;
+  --sci-border-hover: #2d3748;
+}
+
+/* Global Fixed SVG Background */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('/flow-bg.svg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.6; /* Balanced visibility */
+  filter: blur(2px);
+  animation: bgFloat 30s ease-in-out infinite alternate;
+}
+
+.dark body::before {
+  opacity: 0.4; /* Slightly more visible nodes in dark mode */
+}
+
+@keyframes bgFloat {
+  0% { transform: scale(1) translateY(0); }
+  100% { transform: scale(1.05) translateY(-2%); }
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 50% 50%, transparent 0%, var(--sci-surface-1) 100%);
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.8; /* Higher opacity in light mode to whiten the background */
+}
+
+.dark body::after {
+  opacity: 0.9;
+}
+
+/* Nav & Sidebar Glassmorphism */
+.VPNav {
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  background: var(--sci-glass-bg) !important;
+  border-bottom: 1px solid var(--sci-glass-border) !important;
+  z-index: 100 !important;
+}
+
+.VPSidebar {
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  background: var(--sci-glass-bg) !important;
+  border-right: 1px solid var(--sci-glass-border) !important;
+  z-index: 10 !important;
+}
+
+/* Ensure no opaque background on internal VitePress containers */
+.VPNavBar, 
+.VPNavBar .container, 
+.VPNavBar .content,
+.VPNavBar .content-body,
+.VPSidebar .container,
+.VPLocalNav {
+  background: transparent !important;
+  backdrop-filter: none !important;
+}
+
+.VPNavBarTitle .title {
+  font-weight: 800 !important;
+  background: var(--sci-gradient-brand);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Hero Section Refinement */
+.VPHero {
+  background: transparent !important;
+}
+
+.VPHero .name {
+  background: var(--sci-gradient-brand);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 900 !important;
+}
+
+.VPButton.brand {
+  background: var(--sci-gradient-brand) !important;
+  border: none !important;
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3);
+}
+
+.VPButton.brand:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.5);
+}
+
+/* Features Glassmorphism */
+.VPFeature {
+  background: var(--sci-glass-bg) !important;
+  border: 1px solid var(--sci-glass-border) !important;
+  backdrop-filter: blur(10px);
+  border-radius: 16px !important;
+  transition: all 0.3s ease !important;
+}
+
+.VPFeature:hover {
+  transform: translateY(-5px);
+  border-color: var(--vp-c-brand) !important;
+  box-shadow: var(--sci-glass-shadow);
+}
