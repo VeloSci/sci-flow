@@ -6,7 +6,12 @@ export default defineConfig({
   title: 'sci-flow',
   description: 'High-performance scientific flow engine',
   base: '/sci-flow/',
+  head: [
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/sci-flow/logo.svg' }]
+  ],
   themeConfig: {
+    logo: '/logo.svg',
+    siteTitle: 'sci-flow',
     nav: [
       { text: 'Guide', link: '/guide/overview' },
       { text: 'API', link: '/api/' },
@@ -67,6 +72,10 @@ export default defineConfig({
           ]
         }
       ]
+    },
+    footer: {
+      message: 'Released under the MIT License.',
+      copyright: 'Copyright © 2026-present sci-flow'
     },
     socialLinks: [
       { icon: 'github', link: 'https://github.com/jigonzalez930209/sci-flow' }
