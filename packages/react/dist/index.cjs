@@ -29,7 +29,14 @@ module.exports = __toCommonJS(index_exports);
 // src/useSciFlow.ts
 var import_react = require("react");
 var import_core = require("@sci-flow/core");
-function useSciFlow({ initialNodes = [], initialEdges = [], renderer = "auto", onInit, ...options } = {}) {
+function useSciFlow({
+  initialNodes = [],
+  initialEdges = [],
+  renderer = "auto",
+  onInit,
+  nodeTypes = [],
+  ...options
+} = {}) {
   const containerRef = (0, import_react.useRef)(null);
   const engineRef = (0, import_react.useRef)(null);
   const [nodes, setNodesState] = (0, import_react.useState)(initialNodes);
@@ -40,7 +47,10 @@ function useSciFlow({ initialNodes = [], initialEdges = [], renderer = "auto", o
     engineRef.current = new import_core.SciFlow({
       container: containerRef.current,
       renderer,
-      ...options
+      theme: options.theme,
+      direction: options.direction,
+      minZoom: options.minZoom,
+      maxZoom: options.maxZoom
     });
     const stateManager = engineRef.current.stateManager;
     if (stateManager) {
@@ -49,42 +59,48 @@ function useSciFlow({ initialNodes = [], initialEdges = [], renderer = "auto", o
       stateManager.onNodeMount = (nodeId, container) => {
         setPortalMounts((prev) => {
           if (prev.get(nodeId) === container) return prev;
-          const newMap = new Map(prev);
-          newMap.set(nodeId, container);
-          return newMap;
+          const next = new Map(prev);
+          next.set(nodeId, container);
+          return next;
         });
       };
       stateManager.onNodeUnmount = (nodeId) => {
         setPortalMounts((prev) => {
           if (!prev.has(nodeId)) return prev;
-          const newMap = new Map(prev);
-          newMap.delete(nodeId);
-          return newMap;
+          const next = new Map(prev);
+          next.delete(nodeId);
+          return next;
         });
       };
+      if (options.onNodeContextMenu) stateManager.onNodeContextMenu = options.onNodeContextMenu;
+      if (options.onEdgeContextMenu) stateManager.onEdgeContextMenu = options.onEdgeContextMenu;
+      if (options.onPaneContextMenu) stateManager.onPaneContextMenu = options.onPaneContextMenu;
     }
     engineRef.current.setNodes(initialNodes);
     engineRef.current.setEdges(initialEdges);
-    if (onInit) {
-      onInit(engineRef.current);
-    }
+    onInit?.(engineRef.current);
     return () => {
       engineRef.current?.destroy();
       engineRef.current = null;
     };
   }, []);
   (0, import_react.useEffect)(() => {
-    if (!engineRef.current) return;
-    const stateManager = engineRef.current.stateManager;
-    if (options.onNodeContextMenu) stateManager.onNodeContextMenu = options.onNodeContextMenu;
-    if (options.onEdgeContextMenu) stateManager.onEdgeContextMenu = options.onEdgeContextMenu;
-    if (options.onPaneContextMenu) stateManager.onPaneContextMenu = options.onPaneContextMenu;
-  }, [options.onNodeContextMenu, options.onEdgeContextMenu, options.onPaneContextMenu]);
-  (0, import_react.useEffect)(() => {
     if (engineRef.current && options.theme !== void 0) {
       engineRef.current.setTheme(options.theme);
     }
   }, [options.theme]);
+  (0, import_react.useEffect)(() => {
+    if (engineRef.current && options.direction !== void 0) {
+      engineRef.current.setDirection(options.direction);
+    }
+  }, [options.direction]);
+  (0, import_react.useEffect)(() => {
+    if (!engineRef.current) return;
+    const sm = engineRef.current.stateManager;
+    if (options.onNodeContextMenu) sm.onNodeContextMenu = options.onNodeContextMenu;
+    if (options.onEdgeContextMenu) sm.onEdgeContextMenu = options.onEdgeContextMenu;
+    if (options.onPaneContextMenu) sm.onPaneContextMenu = options.onPaneContextMenu;
+  }, [options.onNodeContextMenu, options.onEdgeContextMenu, options.onPaneContextMenu]);
   const setNodes = (n) => {
     setNodesState(n);
     engineRef.current?.setNodes(n);
@@ -93,18 +109,17 @@ function useSciFlow({ initialNodes = [], initialEdges = [], renderer = "auto", o
     setEdgesState(e);
     engineRef.current?.setEdges(e);
   };
-  const fitView = (padding) => engineRef.current?.fitView(padding);
-  const centerNode = (id) => engineRef.current?.centerNode(id);
   return {
     containerRef,
     engine: engineRef.current,
     nodes,
     edges,
     portalMounts,
+    nodeTypes,
     setNodes,
     setEdges,
-    fitView,
-    centerNode
+    fitView: (padding) => engineRef.current?.fitView(padding),
+    centerNode: (id) => engineRef.current?.centerNode(id)
   };
 }
 
@@ -123,13 +138,11 @@ function SciFlow2({
   const typeMap = (0, import_react2.useMemo)(() => {
     const map = /* @__PURE__ */ new Map();
     nodeTypes.forEach((Comp) => {
-      const c = Comp;
-      const type = c.nodeType || c.type || c.name;
+      const type = Comp.nodeType ?? Comp.type ?? Comp.name;
       if (type) {
         map.set(type, Comp);
-        if (c.name) {
-          map.set(c.name.toLowerCase().replace("node", ""), Comp);
-        }
+        const shortName = type.toLowerCase().replace(/node$/, "");
+        if (shortName !== type) map.set(shortName, Comp);
       }
     });
     return map;
@@ -138,17 +151,19 @@ function SciFlow2({
     "div",
     {
       ref: containerRef,
-      className: `sci-flow-react-container ${className || ""}`,
+      className: `sci-flow-react-container ${className ?? ""}`,
       style: { width: "100%", height: "100%", position: "relative", overflow: "hidden", ...style },
       children: [
         Array.from(portalMounts.entries()).map(([nodeId, domElement]) => {
           const nodeData = nodes.find((n) => n.id === nodeId);
-          if (!nodeData || !domElement) return null;
+          if (!nodeData) return null;
           const NodeComponent = typeMap.get(nodeData.type);
-          if (NodeComponent) {
-            return (0, import_react_dom.createPortal)(/* @__PURE__ */ (0, import_jsx_runtime.jsx)(NodeComponent, { node: nodeData, engine }, nodeId), domElement);
-          }
-          return null;
+          if (!NodeComponent) return null;
+          const engineRef = engine;
+          return (0, import_react_dom.createPortal)(
+            /* @__PURE__ */ (0, import_jsx_runtime.jsx)(NodeComponent, { node: nodeData, engine: engineRef }, nodeId),
+            domElement
+          );
         }),
         children
       ]
