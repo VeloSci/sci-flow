@@ -1,20 +1,4 @@
 export const SVG_RENDERER_STYLES = `
-  :root {
-    --sf-node-bg: #282828;
-    --sf-node-border: #141414;
-    --sf-node-header-ops: #3f3f3f;
-    --sf-node-header-input: #e38634;
-    --sf-node-header-output: #b33939;
-    --sf-node-header-text: #ffffff;
-    --sf-node-selected: #ffffff;
-    --sf-port-bg: #808080;
-    --sf-port-active: #ffffff;
-    --sf-edge-line: #808080;
-    --sf-edge-active: #ffffff;
-    --sf-grid-dot: #2c2e33;
-    --sf-bg: #121417;
-  }
-
   .sci-flow-svg-renderer {
     user-select: none;
     -webkit-user-select: none;
@@ -23,7 +7,7 @@ export const SVG_RENDERER_STYLES = `
 
   /* Main background should be on the container or a separate layer */
   .sci-flow-container {
-    background-color: #121417;
+    background-color: var(--sf-bg);
     position: relative;
     overflow: hidden;
   }
@@ -247,5 +231,14 @@ export const SVG_RENDERER_STYLES = `
     to {
       startOffset: 100%;
     }
+  }
+
+  /* Vertical layout mode */
+  .sci-flow-vertical .sci-flow-port-label {
+    display: none !important;
+  }
+
+  .sci-flow-vertical .sci-flow-node-ports-area {
+    display: none !important;
   }
 `;

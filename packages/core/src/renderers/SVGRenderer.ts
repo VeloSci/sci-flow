@@ -27,14 +27,14 @@ export class SVGRenderer extends BaseRenderer {
   constructor(options: RendererOptions) {
     super(options);
     this.container.classList.add('sci-flow-container');
-    
+
     this.routerWorker = createPathfindingWorker();
     this.routerWorker.onmessage = (e: MessageEvent<PathfindingWorkerResponse>) => {
-        const { id, path } = e.data;
-        if (this.pendingRoutes.has(id)) {
-            this.pendingRoutes.get(id)!(path);
-            this.pendingRoutes.delete(id);
-        }
+      const { id, path } = e.data;
+      if (this.pendingRoutes.has(id)) {
+        this.pendingRoutes.get(id)!(path);
+        this.pendingRoutes.delete(id);
+      }
     };
 
     this.svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -64,20 +64,20 @@ export class SVGRenderer extends BaseRenderer {
     this.container.appendChild(this.svg);
 
     this.nodeManager = new NodeManager(this.nodesGroup);
-    
+
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
     this.edgeManager = new EdgeManager(
-        this.edgesGroup, 
-        this.routerWorker, 
-        this.routeCache, 
-        this.routingHashCache, 
-        this.pendingRoutes, 
-        { 
-            get value() { return self.routerIdCounter; }, 
-            set value(v: number) { self.routerIdCounter = v; } 
-        },
-        this.getPortAnchor.bind(this)
+      this.edgesGroup,
+      this.routerWorker,
+      this.routeCache,
+      this.routingHashCache,
+      this.pendingRoutes,
+      {
+        get value() { return self.routerIdCounter; },
+        set value(v: number) { self.routerIdCounter = v; }
+      },
+      this.getPortAnchor.bind(this)
     );
   }
 
@@ -87,8 +87,8 @@ export class SVGRenderer extends BaseRenderer {
     this.nodesGroup.setAttribute('transform', transform);
 
     const existingNodeDocs = new Set(Array.from(this.nodesGroup.children).map(n => n.id));
-    this.nodeManager.reconcile(state.nodes, existingNodeDocs, this.stateManager, registry);
-    
+    this.nodeManager.reconcile(state.nodes, existingNodeDocs, this.stateManager, registry, state.direction || 'horizontal');
+
     existingNodeDocs.forEach(id => {
       document.getElementById(id)?.remove();
       const sm = this.stateManager;
@@ -98,11 +98,11 @@ export class SVGRenderer extends BaseRenderer {
     });
 
     const obstacles = Array.from(state.nodes.values()).map(n => ({
-        id: n.id,
-        x: n.position.x,
-        y: n.position.y,
-        width: n.style?.width || 140,
-        height: n.style?.height || 100
+      id: n.id,
+      x: n.position.x,
+      y: n.position.y,
+      width: n.style?.width || 140,
+      height: n.style?.height || 100
     }));
 
     const existingEdgeDocs = new Set(Array.from(this.edgesGroup.children).map(n => n.id));
@@ -118,51 +118,51 @@ export class SVGRenderer extends BaseRenderer {
   private renderDraftEdge(state: FlowState, obstacles: Array<{ id: string, x: number, y: number, width: number, height: number }>): void {
     let draftPath = document.getElementById('sci-flow-draft-edge') as SVGPathElement | null;
     if (state.draftEdge) {
-        if (!draftPath) {
-            draftPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            draftPath.id = 'sci-flow-draft-edge';
-            draftPath.setAttribute('class', 'sci-flow-edge sci-flow-draft-edge');
-            draftPath.setAttribute('fill', 'none');
-            draftPath.setAttribute('stroke', 'var(--sf-edge-animated)');
-            draftPath.setAttribute('stroke-width', '3');
-            draftPath.setAttribute('stroke-dasharray', '5, 5');
-            draftPath.style.pointerEvents = 'none';
-            
-            if (this.edgesGroup.firstChild) {
-                this.edgesGroup.insertBefore(draftPath, this.edgesGroup.firstChild);
-            } else {
-                this.edgesGroup.appendChild(draftPath);
-            }
-        }
+      if (!draftPath) {
+        draftPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        draftPath.id = 'sci-flow-draft-edge';
+        draftPath.setAttribute('class', 'sci-flow-edge sci-flow-draft-edge');
+        draftPath.setAttribute('fill', 'none');
+        draftPath.setAttribute('stroke', 'var(--sf-edge-animated)');
+        draftPath.setAttribute('stroke-width', '3');
+        draftPath.setAttribute('stroke-dasharray', '5, 5');
+        draftPath.style.pointerEvents = 'none';
 
-        const sourceNode = state.nodes.get(state.draftEdge.sourceNodeId);
-        if (sourceNode) {
-            const sourcePos = this.getPortAnchor(sourceNode, state.draftEdge.sourcePortId);
-            const targetPos = state.draftEdge.targetPosition;
-            
-            // Filter obstacles to exclude the source node while drafting
-            const filteredObstacles = obstacles.filter(obs => obs.id !== state.draftEdge?.sourceNodeId);
-            
-            const routingMode = state.defaultEdgeType || 'bezier';
-            const pathString = getEdgePath({ 
-                source: sourcePos, 
-                target: targetPos, 
-                mode: routingMode,
-                obstacles: filteredObstacles
-            });
-            draftPath.setAttribute('d', pathString);
+        if (this.edgesGroup.firstChild) {
+          this.edgesGroup.insertBefore(draftPath, this.edgesGroup.firstChild);
+        } else {
+          this.edgesGroup.appendChild(draftPath);
         }
+      }
+
+      const sourceNode = state.nodes.get(state.draftEdge.sourceNodeId);
+      if (sourceNode) {
+        const sourcePos = this.getPortAnchor(sourceNode, state.draftEdge.sourcePortId);
+        const targetPos = state.draftEdge.targetPosition;
+
+        // Filter obstacles to exclude the source node while drafting
+        const filteredObstacles = obstacles.filter(obs => obs.id !== state.draftEdge?.sourceNodeId);
+
+        const routingMode = state.defaultEdgeType || 'bezier';
+        const pathString = getEdgePath({
+          source: sourcePos,
+          target: targetPos,
+          mode: routingMode,
+          obstacles: filteredObstacles
+        });
+        draftPath.setAttribute('d', pathString);
+      }
     } else if (draftPath) {
-        draftPath.remove();
+      draftPath.remove();
     }
   }
 
   private getPortAnchor(node: Node, portId: string): Position {
-      return getPortAnchor(node, portId, this.nodesGroup);
+    return getPortAnchor(node, portId, this.nodesGroup);
   }
 
   public getViewportElement(): SVGElement {
-      return this.svg;
+    return this.svg;
   }
 
   public destroy(): void {

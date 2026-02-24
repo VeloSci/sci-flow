@@ -5,18 +5,19 @@ import { NodeDefinition } from '../state/RegistryManager';
 export class NodeManager {
     constructor(
         private nodesGroup: SVGGElement
-    ) {}
+    ) { }
 
     public reconcile(
-        nodes: Map<string, Node>, 
-        existingNodeDocs: Set<string>, 
-        stateManager: StateManager | undefined, 
-        registry: Map<string, NodeDefinition>
+        nodes: Map<string, Node>,
+        existingNodeDocs: Set<string>,
+        stateManager: StateManager | undefined,
+        registry: Map<string, NodeDefinition>,
+        direction: 'horizontal' | 'vertical' = 'horizontal'
     ): void {
         nodes.forEach(node => {
             let g = document.getElementById(`node-${node.id}`) as SVGGElement | null;
             if (!g) {
-                g = this.createNodeElement(node, stateManager, registry);
+                g = this.createNodeElement(node, stateManager, registry, direction);
                 this.nodesGroup.appendChild(g);
                 if (stateManager?.onNodeMount) {
                     const wrapper = g.querySelector('.sci-flow-node-wrapper') as HTMLDivElement;
@@ -24,21 +25,19 @@ export class NodeManager {
                     stateManager.onNodeMount(node.id, bodyArea || wrapper);
                 }
             } else {
-                // Check if node type changed or if we need to swap default preview for real component
+                // Check if node type changed or direction changed
                 const wrapper = g.querySelector('.sci-flow-node-wrapper') as HTMLDivElement;
                 const nodeDef = registry.get(node.type);
                 const isDefaultPreview = wrapper?.dataset.isDefaultPreview === 'true';
-                
-                // Only re-render if:
-                // 1. The type has fundamentally changed
-                // 2. We were showing a placeholder and now we have a real HTML component
-                // 3. We were showing a placeholder for a React node that is now registered
+                const currentDirection = wrapper?.dataset.direction || 'horizontal';
+
                 if (wrapper && (
-                    wrapper.dataset.type !== node.type || 
-                    (isDefaultPreview && nodeDef)
+                    wrapper.dataset.type !== node.type ||
+                    (isDefaultPreview && nodeDef) ||
+                    currentDirection !== direction
                 )) {
                     this.nodesGroup.removeChild(g);
-                    g = this.createNodeElement(node, stateManager, registry);
+                    g = this.createNodeElement(node, stateManager, registry, direction);
                     this.nodesGroup.appendChild(g);
                     if (stateManager?.onNodeMount) {
                         const newWrapper = g.querySelector('.sci-flow-node-wrapper') as HTMLDivElement;
@@ -47,24 +46,29 @@ export class NodeManager {
                     }
                 }
             }
-            
+
             g.setAttribute('transform', `translate(${node.position.x}, ${node.position.y})`);
-            
+
             if (node.selected) {
                 g.classList.add('sci-flow-node-selected');
             } else {
                 g.classList.remove('sci-flow-node-selected');
             }
-            
+
             existingNodeDocs.delete(`node-${node.id}`);
         });
     }
 
-    private createNodeElement(node: Node, stateManager: StateManager | undefined, registry: Map<string, NodeDefinition>): SVGGElement {
+    private createNodeElement(
+        node: Node,
+        stateManager: StateManager | undefined,
+        registry: Map<string, NodeDefinition>,
+        direction: 'horizontal' | 'vertical'
+    ): SVGGElement {
         const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         g.id = `node-${node.id}`;
-        g.setAttribute('class', 'sci-flow-node');
-        
+        g.setAttribute('class', `sci-flow-node${direction === 'vertical' ? ' sci-flow-vertical' : ''}`);
+
         const foreignObj = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
         const initialWidth = node.style?.width || 140;
         const initialHeight = node.style?.height || 100;
@@ -75,7 +79,8 @@ export class NodeManager {
         const wrapper = document.createElement('div');
         wrapper.className = 'sci-flow-node-wrapper';
         wrapper.dataset.type = node.type;
-        
+        wrapper.dataset.direction = direction;
+
         // Essential: Track if this is a default preview to allow later replacement
         const nodeDef = registry.get(node.type);
         wrapper.dataset.isDefaultPreview = nodeDef ? 'false' : 'true';
@@ -84,6 +89,8 @@ export class NodeManager {
         const outputIds = Object.keys(node.outputs || {});
         const headerHeight = 32;
         const portSpacing = 26;
+
+        const isVertical = direction === 'vertical';
 
         // Initialize Structure
         wrapper.innerHTML = `
@@ -100,7 +107,7 @@ export class NodeManager {
 
         const bodyArea = wrapper.querySelector('.sci-flow-node-body') as HTMLDivElement;
         const portsArea = wrapper.querySelector('.sci-flow-node-ports-area') as HTMLDivElement;
-        
+
         // Populate Body
         if (nodeDef?.renderHTML) {
             bodyArea.appendChild(nodeDef.renderHTML(node));
@@ -108,13 +115,17 @@ export class NodeManager {
             bodyArea.innerHTML = `<div class="sci-flow-node-fallback">Default Node Content</div>`;
         }
 
-        // Reserve space for ports
-        const portCount = Math.max(inputIds.length, outputIds.length);
-        if (portCount > 0) {
-            portsArea.style.height = `${portCount * 26}px`;
-            portsArea.style.minHeight = '20px';
-        } else {
+        // Reserve space for ports — in vertical mode hide the ports area labels
+        if (isVertical) {
             portsArea.style.display = 'none';
+        } else {
+            const portCount = Math.max(inputIds.length, outputIds.length);
+            if (portCount > 0) {
+                portsArea.style.height = `${portCount * 26}px`;
+                portsArea.style.minHeight = '20px';
+            } else {
+                portsArea.style.display = 'none';
+            }
         }
 
         // Essential: Append foreignObject FIRST so it is under labels/ports
@@ -129,23 +140,37 @@ export class NodeManager {
             port.dataset.portid = id;
             port.dataset.portType = type;
             port.dataset.dataType = dataType;
-            g.appendChild(port); // Append after foreignObj
+            g.appendChild(port);
             return port;
         };
 
+        // Create ports — position depends on direction
         const inPorts = inputIds.map((id, i) => {
             const port = createSVGPort(id, 'in', node.inputs[id]?.dataType || 'any');
-            // Constant Sync: header (32) + estimated body (60) + 13 center
-            const y = headerHeight + 60 + 13 + (i * portSpacing);
-            port.setAttribute('cy', y.toString());
-            port.setAttribute('cx', '-6');
+            if (isVertical) {
+                // Top edge, spread horizontally
+                const spacing = initialWidth / (inputIds.length + 1);
+                port.setAttribute('cx', String(spacing * (i + 1)));
+                port.setAttribute('cy', '-6');
+            } else {
+                const y = headerHeight + 60 + 13 + (i * portSpacing);
+                port.setAttribute('cy', y.toString());
+                port.setAttribute('cx', '-6');
+            }
             return port;
         });
         const outPorts = outputIds.map((id, i) => {
             const port = createSVGPort(id, 'out', node.outputs[id]?.dataType || 'any');
-            const y = headerHeight + 60 + 13 + (i * portSpacing);
-            port.setAttribute('cy', y.toString());
-            port.setAttribute('cx', String(initialWidth + 6));
+            if (isVertical) {
+                // Bottom edge, spread horizontally
+                const spacing = initialWidth / (outputIds.length + 1);
+                port.setAttribute('cx', String(spacing * (i + 1)));
+                port.setAttribute('cy', String(initialHeight + 6));
+            } else {
+                const y = headerHeight + 60 + 13 + (i * portSpacing);
+                port.setAttribute('cy', y.toString());
+                port.setAttribute('cx', String(initialWidth + 6));
+            }
             return port;
         });
 
@@ -160,61 +185,77 @@ export class NodeManager {
                 foreignObj.setAttribute('width', w.toString());
                 foreignObj.setAttribute('height', h.toString());
 
-                const portsArea = wrapper.querySelector('.sci-flow-node-ports-area') as HTMLDivElement;
-                const portsYOffset = portsArea ? (portsArea.offsetTop) : headerHeight;
-
                 // Sync state if dimensions changed
                 const stateNode = stateManager?.getState().nodes.get(node.id);
                 const sizeChanged = stateNode && (Math.abs((stateNode.style?.width || 0) - w) > 1 || Math.abs((stateNode.style?.height || 0) - h) > 1);
-                
+
                 if (sizeChanged) {
                     stateNode.style = { ...stateNode.style, width: w, height: h };
                 }
 
-                // IMPORTANT: Position ports and labels synchronously BEFORE notifying state manager
-                // This ensures edges find the correct 'cy' attributes in the DOM when they re-render.
-                inPorts.forEach((p, i) => {
-                    const y = portsYOffset + 13 + (i * portSpacing);
-                    p.setAttribute('cy', y.toString());
-                    p.setAttribute('cx', '-6');
+                if (isVertical) {
+                    // Vertical: inputs on top, outputs on bottom, spread horizontally
+                    inPorts.forEach((p, i) => {
+                        const spacing = w / (inputIds.length + 1);
+                        p.setAttribute('cx', String(spacing * (i + 1)));
+                        p.setAttribute('cy', '-6');
+                    });
 
-                    const labelId = `label-in-${node.id}-${inputIds[i]}`;
-                    let label = document.getElementById(labelId) as unknown as SVGTextElement | null;
-                    if (!label) {
-                        label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                        label.id = labelId;
-                        label.setAttribute('class', 'sci-flow-port-label');
-                        label.setAttribute('x', '12');
-                        label.style.pointerEvents = 'none';
-                        g.appendChild(label);
-                    }
-                    if (label) {
-                        label.setAttribute('y', (y + 4).toString());
-                        label.textContent = node.inputs[inputIds[i]]?.label || inputIds[i];
-                    }
-                });
+                    outPorts.forEach((p, i) => {
+                        const spacing = w / (outputIds.length + 1);
+                        p.setAttribute('cx', String(spacing * (i + 1)));
+                        p.setAttribute('cy', String(h + 6));
+                    });
 
-                outPorts.forEach((p, i) => {
-                    const y = portsYOffset + 13 + (i * portSpacing);
-                    p.setAttribute('cy', y.toString());
-                    p.setAttribute('cx', String(w + 6));
+                    // No labels in vertical mode
+                } else {
+                    // Horizontal: existing left-right behavior
+                    const portsAreaEl = wrapper.querySelector('.sci-flow-node-ports-area') as HTMLDivElement;
+                    const portsYOffset = portsAreaEl ? (portsAreaEl.offsetTop) : headerHeight;
 
-                    const labelId = `label-out-${node.id}-${outputIds[i]}`;
-                    let label = document.getElementById(labelId) as unknown as SVGTextElement | null;
-                    if (!label) {
-                        label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-                        label.id = labelId;
-                        label.setAttribute('class', 'sci-flow-port-label');
-                        label.setAttribute('text-anchor', 'end');
-                        label.style.pointerEvents = 'none';
-                        g.appendChild(label);
-                    }
-                    if (label) {
-                        label.setAttribute('x', (w - 12).toString());
-                        label.setAttribute('y', (y + 4).toString());
-                        label.textContent = node.outputs[outputIds[i]]?.label || outputIds[i];
-                    }
-                });
+                    inPorts.forEach((p, i) => {
+                        const y = portsYOffset + 13 + (i * portSpacing);
+                        p.setAttribute('cy', y.toString());
+                        p.setAttribute('cx', '-6');
+
+                        const labelId = `label-in-${node.id}-${inputIds[i]}`;
+                        let label = document.getElementById(labelId) as unknown as SVGTextElement | null;
+                        if (!label) {
+                            label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                            label.id = labelId;
+                            label.setAttribute('class', 'sci-flow-port-label');
+                            label.setAttribute('x', '12');
+                            label.style.pointerEvents = 'none';
+                            g.appendChild(label);
+                        }
+                        if (label) {
+                            label.setAttribute('y', (y + 4).toString());
+                            label.textContent = node.inputs[inputIds[i]]?.label || inputIds[i];
+                        }
+                    });
+
+                    outPorts.forEach((p, i) => {
+                        const y = portsYOffset + 13 + (i * portSpacing);
+                        p.setAttribute('cy', y.toString());
+                        p.setAttribute('cx', String(w + 6));
+
+                        const labelId = `label-out-${node.id}-${outputIds[i]}`;
+                        let label = document.getElementById(labelId) as unknown as SVGTextElement | null;
+                        if (!label) {
+                            label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                            label.id = labelId;
+                            label.setAttribute('class', 'sci-flow-port-label');
+                            label.setAttribute('text-anchor', 'end');
+                            label.style.pointerEvents = 'none';
+                            g.appendChild(label);
+                        }
+                        if (label) {
+                            label.setAttribute('x', (w - 12).toString());
+                            label.setAttribute('y', (y + 4).toString());
+                            label.textContent = node.outputs[outputIds[i]]?.label || outputIds[i];
+                        }
+                    });
+                }
 
                 // Notify state manager ONLY after DOM is updated and correct
                 const isFirstLayout = !wrapper.dataset.layoutSettled;
@@ -225,7 +266,7 @@ export class NodeManager {
             });
         });
         ro.observe(wrapper);
-        
+
         return g;
     }
 }
