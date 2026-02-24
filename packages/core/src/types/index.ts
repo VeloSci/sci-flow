@@ -8,7 +8,7 @@ export interface Size {
   height: number;
 }
 
-export interface Rect extends Position, Size {}
+export interface Rect extends Position, Size { }
 
 export interface ViewportState {
   x: number;
@@ -27,11 +27,17 @@ export interface Theme {
     nodeBackground: string;
     nodeBorder: string;
     nodeText: string;
+    nodeHeaderText: string;
+    nodeHeaderOps: string;
+    nodeHeaderInput: string;
+    nodeHeaderOutput: string;
+    nodeSelected: string;
     edgeLine: string;
     edgeActive: string;
     edgeAnimated: string;
     portBackground: string;
     portBorder: string;
+    portActive: string;
     contextMenuBackground: string;
     contextMenuText: string;
     contextMenuHover: string;
@@ -68,25 +74,25 @@ export interface NodeStyle {
   borderColor?: string;
   borderRadius?: number;
   // Allows customizing how the structural layout behaves
-  layout?: 'flex-col' | 'flex-row' | 'grid' | 'absolute'; 
+  layout?: 'flex-col' | 'flex-row' | 'grid' | 'absolute';
 }
 
 export interface Node {
   id: string;
   type: string; // Mapped to a registered custom node component
   position: Position;
-  
+
   // Dynamic port routing
   inputs: Record<string, Port>;
   outputs: Record<string, Port>;
   portConfig?: 'left-right' | 'top-bottom' | 'top-in-bottom-out' | 'bottom-in-top-out' | 'left-in-right-out' | 'right-in-left-out' | 'left-top-in-bottom-right-out' | 'bottom-right-in-left-top-out' | 'bottom-top';
-  
+
   // Custom interactive widgets (Blender-like controls)
   widgets?: Record<string, NodeWidget>;
 
   // Internal data/state managed by the node
   data: Record<string, unknown>;
-  
+
   // Sandboxed logic to execute
   logicCode?: string;
 
@@ -117,6 +123,7 @@ export interface FlowState {
   nodes: Map<string, Node>;
   edges: Map<string, Edge>;
   viewport: ViewportState;
+  direction: 'horizontal' | 'vertical';
   draftEdge?: { sourceNodeId: string; sourcePortId: string; targetPosition: Position };
   smartGuides?: { x?: number, y?: number }[];
   defaultEdgeType?: 'straight' | 'bezier' | 'step' | 'smart';
