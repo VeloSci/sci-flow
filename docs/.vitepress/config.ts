@@ -1,6 +1,7 @@
 import { defineConfig } from 'vitepress'
 import { resolve } from 'path'
 import react from '@vitejs/plugin-react'
+import { svelte } from '@sveltejs/vite-plugin-svelte'
 
 export default defineConfig({
   title: 'sci-flow',
@@ -32,6 +33,7 @@ export default defineConfig({
           items: [
             { text: 'The Engine', link: '/guide/core-engine' },
             { text: 'State Management', link: '/guide/state' },
+            { text: 'Themes & Layout', link: '/guide/themes-and-layout' },
             { text: 'Rendering', link: '/guide/rendering' }
           ]
         }
@@ -82,11 +84,14 @@ export default defineConfig({
     ]
   },
   vite: {
-    plugins: [react() as any],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    plugins: [react() as any, ...svelte() as any],
     resolve: {
       alias: [
-        { find: '@sci-flow/core', replacement: resolve(__dirname, '../../packages/core/src/index.ts') },
-        { find: '@sci-flow/react', replacement: resolve(__dirname, '../../packages/react/src/index.ts') }
+        { find: /^@sci-flow\/core$/, replacement: resolve(__dirname, '../../packages/core/src/index.ts') },
+        { find: /^@sci-flow\/react$/, replacement: resolve(__dirname, '../../packages/react/src/index.ts') },
+        { find: /^@sci-flow\/vue$/, replacement: resolve(__dirname, '../../packages/vue/src/index.ts') },
+        { find: /^@sci-flow\/svelte$/, replacement: resolve(__dirname, '../../packages/svelte/src/index.ts') }
       ]
     }
   }
