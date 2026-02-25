@@ -1,5 +1,5 @@
 <script setup>
-import { sampleFlowData } from './.vitepress/theme/flows'
+import { sampleFlowData } from '../.vitepress/theme/flows'
 </script>
 
 # Interactive Playground

@@ -193,16 +193,6 @@ export const SVG_RENDERER_STYLES = `
     animation: sf-blink 1s ease-in-out infinite;
   }
 
-  .sci-flow-edge-animated-arrows {
-    stroke-dasharray: 10, 5;
-    animation: sf-dash-anim 0.5s linear infinite;
-  }
-
-  .sci-flow-edge-animated-symbols {
-    /* Base style for symbols, actual pattern set in JS */
-    animation: sf-dash-anim 1s linear infinite;
-  }
-
   .sci-flow-edge-symbols {
     pointer-events: none;
     fill: var(--sf-edge-line);
@@ -213,24 +203,6 @@ export const SVG_RENDERER_STYLES = `
   @keyframes sf-blink {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.2; }
-  }
-
-  @keyframes sf-dash-anim {
-    from {
-      stroke-dashoffset: 30;
-    }
-    to {
-      stroke-dashoffset: 0;
-    }
-  }
-
-  @keyframes sf-text-flow {
-    from {
-      startOffset: -10%;
-    }
-    to {
-      startOffset: 100%;
-    }
   }
 
   /* Vertical layout mode */

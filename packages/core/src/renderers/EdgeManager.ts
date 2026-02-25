@@ -86,19 +86,42 @@ export class EdgeManager {
         targetPort.setAttribute('r', '3');
         targetPort.style.pointerEvents = 'none';
 
+        const beamPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        beamPath.setAttribute('class', 'sci-flow-edge-beam-overlay');
+        beamPath.setAttribute('fill', 'none');
+        beamPath.style.pointerEvents = 'none';
+        beamPath.style.display = 'none';
+
         group.appendChild(bgPath);
         group.appendChild(fgPath);
         group.appendChild(overlayPath);
+        group.appendChild(beamPath);
         group.appendChild(symbolsText);
         group.appendChild(sourcePort);
         group.appendChild(targetPort);
         
         return group;
     }
+
+    /** Adds a seamless SVG <animate> on stroke-dashoffset to a path element.
+     *  `period` must equal the sum of all dasharray values so the loop resets exactly. */
+    private addSeamlessAnimate(path: SVGPathElement, period: number, dur: string): void {
+        const old = path.querySelector('animate');
+        if (old) old.remove();
+        const anim = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+        anim.setAttribute('attributeName', 'stroke-dashoffset');
+        anim.setAttribute('from', `${period}`);
+        anim.setAttribute('to', '0');
+        anim.setAttribute('dur', dur);
+        anim.setAttribute('repeatCount', 'indefinite');
+        path.appendChild(anim);
+    }
+
     private updateEdgeVisuals(group: SVGGElement, edge: Edge, sourcePos: Position, targetPos: Position, routingMode: NonNullable<Edge['type']>, obstacles: Array<{ id: string, x: number, y: number, width: number, height: number }>): void {
         const bgPath = group.querySelector('.sci-flow-edge-bg') as SVGPathElement;
         const fgPath = group.querySelector('.sci-flow-edge-fg') as SVGPathElement;
         const overlayPath = group.querySelector('.sci-flow-edge-overlay') as SVGPathElement;
+        const beamPath = group.querySelector('.sci-flow-edge-beam-overlay') as SVGPathElement;
         const symbolsText = group.querySelector('.sci-flow-edge-symbols') as SVGTextElement;
         const sourcePort = group.querySelector('.sci-flow-port-source') as SVGCircleElement;
         const targetPort = group.querySelector('.sci-flow-port-target') as SVGCircleElement;
@@ -119,69 +142,127 @@ export class EdgeManager {
         const customLineStyle = edge.style?.lineStyle || 'solid';
         const customStroke = edge.style?.stroke;
         const customStrokeWidth = edge.style?.strokeWidth;
-        const animType = edge.style?.animationType || 'dash';
+        const animType = edge.style?.animationType;
 
         fgPath.style.stroke = customStroke || (edge.selected ? 'var(--sf-edge-active)' : 'var(--sf-edge-line)');
         fgPath.style.strokeWidth = customStrokeWidth ? `${customStrokeWidth}px` : (edge.selected ? '3px' : '2px');
         
-        fgPath.classList.remove('sci-flow-edge-animated-pulse', 'sci-flow-edge-animated-arrows', 'sci-flow-edge-animated-symbols');
-        overlayPath.style.display = 'none';
-        if (symbolsText) {
-            symbolsText.style.display = 'none';
-            symbolsText.setAttribute('dominant-baseline', 'middle');
-            symbolsText.setAttribute('alignment-baseline', 'middle');
-        }
-        
+        // ─── CLEAR ALL ANIMATION STATE ───
+        fgPath.classList.remove('sci-flow-edge-animated-pulse');
         fgPath.style.animation = '';
+        fgPath.style.strokeDasharray = '';
+        fgPath.style.strokeDashoffset = '';
+        const oldFgAnim = fgPath.querySelector('animate');
+        if (oldFgAnim) oldFgAnim.remove();
+        overlayPath.style.display = 'none';
+        if (beamPath) {
+            beamPath.style.display = 'none';
+        }
+        if (symbolsText) symbolsText.style.display = 'none';
 
-        if (edge.animated) {
+        // ─── LINE STYLE (base, always applied) ───
+        if (customLineStyle === 'dashed') {
+            fgPath.style.strokeDasharray = '8, 8';
+        } else if (customLineStyle === 'dotted') {
+            fgPath.style.strokeDasharray = '2, 4';
+        } else {
+            fgPath.style.strokeDasharray = 'none';
+        }
+
+        // ─── ANIMATION (layered on top) ───
+        // All dash-based anims use SVG <animate> on the fgPath  
+        // so the loop is mathematically seamless (range = period).
+        const ANIM_DUR = '2s'; // constant time for all travel animations
+
+        if (edge.animated && animType) {
             if (animType === 'pulse') {
                 fgPath.classList.add('sci-flow-edge-animated-pulse');
-                fgPath.style.strokeDasharray = 'none';
+
+            } else if (animType === 'dash') {
+                // Flowing dashes: dasharray = [8, 8], period = 16
+                fgPath.style.strokeDasharray = '8, 8';
+                this.addSeamlessAnimate(fgPath, 16, ANIM_DUR);
+
+            } else if (animType === 'dotted') {
+                // Flowing dots: dasharray = [2, 6], period = 8
+                fgPath.style.strokeDasharray = '2, 6';
+                this.addSeamlessAnimate(fgPath, 8, ANIM_DUR);
+
             } else if (animType === 'arrows') {
-                fgPath.classList.add('sci-flow-edge-animated-arrows');
+                // Arrow-like chevrons: [1, 6, 6, 6] pattern, period = 19
+                fgPath.style.strokeDasharray = '1, 6, 6, 6';
+                this.addSeamlessAnimate(fgPath, 19, ANIM_DUR);
+
             } else if (animType === 'symbols') {
                 if (symbolsText) {
                     symbolsText.style.display = 'block';
                     symbolsText.style.fill = customStroke || (edge.selected ? 'var(--sf-edge-active)' : 'var(--sf-edge-line)');
                     symbolsText.style.fontSize = '12px';
                     symbolsText.style.fontWeight = 'bold';
-                    
                     const textPath = symbolsText.querySelector('textPath');
                     if (textPath) {
-                        // Clear existing animation elements
                         while (textPath.firstChild) textPath.removeChild(textPath.firstChild);
-                        textPath.textContent = '» » » » » » » »'; // Keep it shorter to avoid overlap jumps
-                        
+                        textPath.textContent = '▸ ▸ ▸ ▸ ▸ ▸ ▸ ▸ ▸ ▸ ▸ ▸';
                         const animate = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
                         animate.setAttribute('attributeName', 'startOffset');
-                        animate.setAttribute('from', '-20%');
+                        animate.setAttribute('from', '-30%');
                         animate.setAttribute('to', '100%');
-                        animate.setAttribute('dur', '3s');
+                        animate.setAttribute('dur', '4s');
                         animate.setAttribute('repeatCount', 'indefinite');
                         textPath.appendChild(animate);
                     }
                 }
-                fgPath.style.strokeDasharray = 'none';
-            } else {
-                fgPath.style.strokeDasharray = '5, 5';
-                fgPath.style.animation = 'sf-dash-anim 1s linear infinite';
-            }
-        } else {
-            fgPath.style.animation = 'none';
-            if (customLineStyle === 'dashed') {
-                fgPath.style.strokeDasharray = '8, 8';
-            } else if (customLineStyle === 'dotted') {
-                fgPath.style.strokeDasharray = '2, 4';
-            } else {
-                fgPath.style.strokeDasharray = 'none';
+
+            } else if (animType === 'beam') {
+                if (beamPath) {
+                    beamPath.style.display = 'block';
+                    const beamColor = edge.style?.animationColor || 'var(--sf-edge-active)';
+                    beamPath.style.stroke = beamColor;
+                    beamPath.style.strokeWidth = fgPath.style.strokeWidth || '3px';
+                    beamPath.style.strokeLinecap = 'round';
+                }
             }
         }
 
+        // ─── PATH COMPUTATION ───
         const routeHash = `${sourcePos.x},${sourcePos.y}|${targetPos.x},${targetPos.y}|${routingMode}|${obstacles.length}`;
+        const isBeam = edge.animated && (animType === 'beam');
+
+        const applyBeamDash = (pathEl: SVGPathElement) => {
+            const totalLen = pathEl.getTotalLength?.() || 200;
+            const prevLen = parseFloat(pathEl.getAttribute('data-beam-len') || '0');
+            if (Math.abs(totalLen - prevLen) < 5) return;
+            pathEl.setAttribute('data-beam-len', `${totalLen}`);
+
+            const tailLen = Math.min(60, totalLen * 0.4);
+            const gap = totalLen - tailLen;
+
+            pathEl.style.strokeDasharray = `${tailLen} ${gap}`;
+            pathEl.style.strokeDashoffset = `${tailLen}`;
+            pathEl.style.animation = 'none';
+
+            const old = pathEl.querySelector('animate');
+            if (old) old.remove();
+
+            // Constant 2s duration regardless of path length
+            const anim = document.createElementNS('http://www.w3.org/2000/svg', 'animate');
+            anim.setAttribute('attributeName', 'stroke-dashoffset');
+            anim.setAttribute('from', `${tailLen}`);
+            anim.setAttribute('to', `${tailLen - totalLen}`);
+            anim.setAttribute('dur', ANIM_DUR);
+            anim.setAttribute('repeatCount', 'indefinite');
+            pathEl.appendChild(anim);
+        };
+
         const setPaths = (p: string) => {
             bgPath.setAttribute('d', p);
             fgPath.setAttribute('d', p);
+            if (beamPath) {
+                beamPath.setAttribute('d', p);
+                if (isBeam) {
+                    requestAnimationFrame(() => applyBeamDash(beamPath));
+                }
+            }
         };
 
         if (routingMode === 'smart') {
@@ -200,10 +281,15 @@ export class EdgeManager {
                         const bg = g.querySelector('.sci-flow-edge-bg') as SVGPathElement;
                         const fg = g.querySelector('.sci-flow-edge-fg') as SVGPathElement;
                         const ov = g.querySelector('.sci-flow-edge-overlay') as SVGPathElement;
+                        const bm = g.querySelector('.sci-flow-edge-beam-overlay') as SVGPathElement;
                         if (bg && fg) {
                             bg.setAttribute('d', finalPath);
                             fg.setAttribute('d', finalPath);
                             if (ov) ov.setAttribute('d', finalPath);
+                            if (bm) {
+                                bm.setAttribute('d', finalPath);
+                                if (isBeam) requestAnimationFrame(() => applyBeamDash(bm));
+                            }
                         }
                     }
                 });

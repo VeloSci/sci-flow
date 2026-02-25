@@ -31,7 +31,8 @@ async function mountFlow() {
   // Load React and sci-flow dynamically to avoid SSR issues
   const React = await import('react')
   const { createRoot } = await import('react-dom/client')
-  const { SciFlow } = await import('@sci-flow/react')
+  const { SciFlow, SciFlowMiniMap } = await import('@sci-flow/react')
+  const { useState, createElement, Fragment } = React
 
   if (root) {
     root.unmount()
@@ -39,14 +40,38 @@ async function mountFlow() {
 
   root = createRoot(container.value)
   
-  root.render(
-    React.createElement(SciFlow, {
-      initialNodes: props.nodes,
-      initialEdges: props.edges,
-      theme: isDark.value ? 'dark' : 'light',
-      style: { width: '100%', height: '100%' }
-    })
-  )
+  const FlowWrapper = () => {
+    const [engine, setEngine] = useState(null)
+    
+    return createElement(Fragment, null, [
+      createElement(SciFlow, {
+        key: 'flow',
+        initialNodes: props.nodes,
+        initialEdges: props.edges,
+        theme: isDark.value ? 'dark' : 'light',
+        style: { width: '100%', height: '100%' },
+        onInit: (e) => setEngine(e)
+      }),
+      createElement(SciFlowMiniMap, {
+        key: 'minimap',
+        engine,
+        width: 140,
+        height: 100,
+        style: {
+          position: 'absolute',
+          bottom: '12px',
+          right: '12px',
+          zIndex: 100,
+          borderRadius: '6px',
+          overflow: 'hidden',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+          border: '1px solid var(--vp-c-divider)'
+        }
+      })
+    ])
+  }
+
+  root.render(createElement(FlowWrapper))
 }
 
 onMounted(() => {

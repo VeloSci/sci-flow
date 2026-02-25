@@ -27,7 +27,7 @@ export class Minimap {
             stateManager: options.stateManager,
             width: options.width || 150,
             height: options.height || 100,
-            nodeColor: options.nodeColor || '#rgba(100, 100, 100, 0.5)',
+            nodeColor: options.nodeColor || 'rgba(100, 100, 100, 0.5)',
             viewportColor: options.viewportColor || 'rgba(0, 123, 255, 0.4)',
             backgroundColor: options.backgroundColor || '#111'
         };

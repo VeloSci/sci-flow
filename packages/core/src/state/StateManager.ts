@@ -231,10 +231,10 @@ export class StateManager {
 
     const nodeW = 180;
     const nodeH = 140;
-    const gapX = 80;
-    const gapY = 80;
-    const startX = 50;
-    const startY = 50;
+    const gapX = 120;
+    const gapY = 120;
+    const startX = 60;
+    const startY = 60;
 
     levelGroups.forEach((group, level) => {
       group.forEach((node, idx) => {

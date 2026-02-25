@@ -17,7 +17,7 @@ export default defineConfig({
       { text: 'Guide', link: '/guide/overview' },
       { text: 'API', link: '/api/' },
       { text: 'Examples', link: '/examples/basic' },
-      { text: 'Playground', link: '/playground' }
+      { text: 'Playground', link: '/playground/' }
     ],
     sidebar: {
       '/guide/': [
@@ -66,11 +66,12 @@ export default defineConfig({
           ]
         }
       ],
-      '/playground': [
+      '/playground/': [
         {
           text: 'Interactive Playground',
           items: [
-            { text: 'Full Demo', link: '/playground' }
+            { text: 'Framework Playground', link: '/playground/' },
+            { text: 'Full Example App', link: '/playground/example' }
           ]
         }
       ]
