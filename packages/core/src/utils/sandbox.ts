@@ -1,9 +1,11 @@
+import { JsonMap, JsonValue } from '../types';
+
 /**
  * Creates a safe evaluation sandbox for executing user-provided JS code.
  * This prevents the code from accessing the global `window`, `document`,
  * or other sensitive APIs, enabling secure "code nodes" evaluation.
  */
-export const evaluateSafe = (code: string, context: Record<string, unknown> = {}): unknown => {
+export const evaluateSafe = (code: string, context: JsonMap = {}): JsonValue => {
     try {
         // Create an array of keys to inject as local variables
         const keys = Object.keys(context);
@@ -23,9 +25,9 @@ export const evaluateSafe = (code: string, context: Record<string, unknown> = {}
         `;
 
         const executor = new Function(fnTemplate)();
-        return executor(...values);
+        return executor(...values) as JsonValue;
     } catch (err) {
         console.error("SciFlow Sandbox Error:", err);
-        return err;
+        return err as JsonValue;
     }
 }

@@ -1,11 +1,11 @@
-import { Node } from '../types';
+import { Node, JsonMap } from '../types';
 
 export interface NodeDefinition {
   type: string;
   renderHTML?: (node: Node) => HTMLElement;
   renderCanvas?: (ctx: CanvasRenderingContext2D, node: Node) => void;
   defaultStyle?: Partial<Node['style']>;
-  evaluate?: (inputs: Record<string, unknown>, nodeData: Record<string, unknown>) => Record<string, unknown>;
+  evaluate?: (inputs: JsonMap, nodeData: JsonMap) => JsonMap;
 }
 
 export class RegistryManager {

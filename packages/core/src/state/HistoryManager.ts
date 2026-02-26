@@ -1,10 +1,13 @@
 import { FlowState } from '../types';
 
+export type HistoryAction = string; // serialized snapshot
+
 export class HistoryManager {
     private history: string[] = [];
     private historyIndex: number = -1;
     private maxHistory: number = 50;
     private isRestoringHistory: boolean = false;
+    private actionListeners: (() => void)[] = [];
 
     constructor() {}
 
@@ -30,6 +33,8 @@ export class HistoryManager {
         } else {
             this.historyIndex++;
         }
+
+        this.actionListeners.forEach(fn => fn());
     }
 
     public undo(restore: (snapshot: string) => void) {
@@ -51,4 +56,21 @@ export class HistoryManager {
         restore(snapshot);
         this.isRestoringHistory = false;
     }
+
+    /** Serialize the current history stack for persistence. */
+    public serialize(): HistoryAction[] {
+        return [...this.history];
+    }
+
+    /** Restore from persisted history. */
+    public deserialize(actions: HistoryAction[]) {
+        this.history = [...actions];
+        this.historyIndex = this.history.length - 1;
+    }
+
+    /** Register a listener called after each action is saved. */
+    public onAction(listener: () => void) {
+        this.actionListeners.push(listener);
+    }
 }
+

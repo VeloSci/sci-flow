@@ -1,63 +1,66 @@
 # React API Reference
 
-The `@sci-flow/react` package provides a high-level wrapper and hooks to integrate the flow engine into React applications.
+## Main Hook
 
-## Component: `<SciFlow />`
+### `useSciFlow(options)`
+Returns `{ engine, nodes, edges, portals }`. Core hook to initialize and manage the SciFlow engine.
 
-The main component to render the flow.
+## Component
 
-### Props
+### `<ReactSciFlow>`
+| Prop | Type | Description |
+|------|------|-------------|
+| `engine` | `SciFlow` | Engine instance from `useSciFlow` |
+| `nodes` | `Node[]` | Current nodes |
+| `edges` | `Edge[]` | Current edges |
+| `portals` | `Map` | Portal mount points |
+| `onNodesChange` | `fn` | Node change callback |
+| `onEdgesChange` | `fn` | Edge change callback |
 
-| Prop | Type | Default | Description |
-| --- | --- | --- | --- |
-| `initialNodes` | `Node[]` | `[]` | Initial node set. |
-| `initialEdges` | `Edge[]` | `[]` | Initial edge set. |
-| `nodeTypes` | `React.FC<any>[]` | `[]` | Custom React components for nodes. |
-| `theme` | `'light' \| 'dark'` | `'light'` | UI theme. |
-| `onInit` | `(engine: SciFlow) => void` | - | Callback when internal engine is ready. |
+## Feature Hooks
 
-## Hook: `useSciFlow`
+| Hook | Description |
+|------|-------------|
+| `usePlugins(engine)` | Access all plugin managers |
+| `useExport(engine)` | `downloadPNG`, `downloadSVG`, `downloadJSON`, `toSVGString`, `toPNGBlob` |
+| `useAnimation(engine)` | `animateNodes`, `setAnimation`, `stopAnimation` |
+| `useDrop(engine)` | `onDrop`, `onDragOver` for external drag-and-drop |
+| `useValidation(engine)` | `setValidator`, `validateConnection` |
+| `useCollapse(engine)` | `collapse`, `expand`, `toggleCollapse` |
+| `useEvaluation(engine)` | `evaluate`, `getResults` |
+| `useNodeToolbar(engine)` | `setActions`, `showToolbar`, `hideToolbar` |
 
-A low-level hook to manage the engine state directly from your components.
+## Phase 9 Hooks
 
+| Hook | Description |
+|------|-------------|
+| `useSnap(engine)` | `snapNode`, `snapAll`, `setGridSize`, `toggle`, `isEnabled`, `getGridSize` |
+| `useGroups(engine)` | `createGroup`, `deleteGroup`, `moveGroup`, `toggleCollapse`, `getGroupBounds`, `getAllGroups` |
+| `useLayout(engine)` | `applyLayout(algorithm, options)`, `computeLayout` |
+| `useSearch(engine)` | `search`, `filterByType`, `clearHighlights`, `isHighlighted`, `results` |
+| `useSnapshots(engine)` | `createSnapshot`, `restoreSnapshot`, `diff`, `listSnapshots`, `deleteSnapshot` |
+| `useShortcuts(engine)` | `setShortcut`, `onAction`, `getBinding`, `getAllBindings` |
+| `useHelperLines(engine)` | `computeHelperLines`, `getActiveLines`, `clearLines` |
+| `usePerfMonitor(engine)` | `show`, `hide`, `toggle`, `getFPS`, `isVisible` |
+| `useEdgeReconnect(engine)` | `startReconnect`, `completeReconnect`, `cancel`, `setValidator`, `isReconnecting` |
+| `useZoomToSelection(engine)` | `zoomToSelection(nodeIds, padding)`, `zoomToSelected` |
+
+## Example: Full Setup
 ```tsx
-const { 
-  nodes, 
-  edges, 
-  setNodes, 
-  setEdges, 
-  fitView 
-} = useSciFlow({ initialNodes, initialEdges });
-```
+import { useSciFlow, ReactSciFlow, useLayout, useSearch, useSnap } from '@sci-flow/react';
 
-### Returns
+function App() {
+  const { engine, nodes, edges, portals } = useSciFlow({ /* options */ });
+  const { applyLayout } = useLayout(engine);
+  const { search, results } = useSearch(engine);
+  const { toggle: toggleSnap } = useSnap(engine);
 
-- `nodes`: Current array of nodes.
-- `edges`: Current array of edges.
-- `setNodes`: Function to update nodes.
-- `setEdges`: Function to update edges.
-- `fitView`: Helper to center the graph.
-- `engine`: The raw `SciFlow` instance for advanced usage.
-
-## Custom Nodes
-
-Custom nodes in React are simple functional components. They receive the `node` data as a prop.
-
-```tsx
-import { NodeProps } from '@sci-flow/react';
-
-export const MyCustomNode = ({ node }: NodeProps) => {
   return (
-    <div className="my-node">
-      <h3>{node.data.label}</h3>
-      <p>ID: {node.id}</p>
+    <div>
+      <button onClick={() => applyLayout('dagre')}>Auto Layout</button>
+      <button onClick={toggleSnap}>Toggle Snap</button>
+      <ReactSciFlow engine={engine} nodes={nodes} edges={edges} portals={portals} />
     </div>
   );
-};
-```
-
-Register it in the `SciFlow` component:
-
-```tsx
-<SciFlow nodeTypes={[MyCustomNode]} />
+}
 ```

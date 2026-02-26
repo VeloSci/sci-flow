@@ -18,7 +18,12 @@ export interface ViewportState {
 
 export type DataType = 'boolean' | 'number' | 'string' | 'object' | 'any';
 
+export type JsonValue = string | number | boolean | null | JsonArray | JsonMap;
+export type JsonArray = JsonValue[];
+export interface JsonMap { [key: string]: JsonValue; }
+
 // --- Theming System ---
+// ... (Theme interface remains the same)
 export interface Theme {
   name?: string;
   colors: {
@@ -52,8 +57,8 @@ export type ThemeMode = 'light' | 'dark' | 'system';
 export interface NodeWidget {
   id: string;
   type: string; // e.g., 'number-input', 'color-picker', 'custom-html'
-  value: unknown;
-  options?: Record<string, unknown>; // Configuration for the widget
+  value: JsonValue;
+  options?: JsonMap; // Configuration for the widget
 }
 
 export interface Port {
@@ -62,7 +67,7 @@ export interface Port {
   dataType: DataType;
   label?: string;
   connectedEdges?: string[]; // Edge IDs connected to this port
-  defaultValue?: unknown; // Value to use if no edge is connected
+  defaultValue?: JsonValue; // Value to use if no edge is connected
 }
 
 export interface NodeStyle {
@@ -91,7 +96,7 @@ export interface Node {
   widgets?: Record<string, NodeWidget>;
 
   // Internal data/state managed by the node
-  data: Record<string, unknown>;
+  data: JsonMap;
 
   // Sandboxed logic to execute
   logicCode?: string;
@@ -99,6 +104,11 @@ export interface Node {
   style?: NodeStyle;
   selected?: boolean;
   parentId?: string; // ID of the parent node for Subgraphs
+
+  // --- New Features ---
+  shape?: 'rectangle' | 'circle' | 'diamond' | 'hexagon' | 'ellipse' | 'parallelogram';
+  resizable?: boolean;
+  collapsed?: boolean;
 }
 
 export interface Edge {
@@ -117,7 +127,7 @@ export interface Edge {
     animationType?: 'pulse' | 'arrows' | 'symbols' | 'dash' | 'dotted' | 'beam';
     animationColor?: string;
   };
-  data?: Record<string, unknown>;
+  data?: JsonMap;
 }
 
 export interface FlowState {

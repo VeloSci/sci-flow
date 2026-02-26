@@ -64,3 +64,9 @@ export default function App() {
 ## How it works
 
 The core `SciFlow` engine creates an SVG `<foreignObject>` as a container. The React wrapper then uses `createPortal` to mount your component into that DOM element. This keeps the rendering high-performance while allowing full React interactivity.
+
+## Live Demo
+
+<FeatureDemo component="CustomNodeDemo" />
+
+> **Try it!** Add random shapes, change node shapes, and toggle resize mode.

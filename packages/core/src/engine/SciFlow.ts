@@ -6,6 +6,7 @@ import { GridRenderer } from '../renderers/GridRenderer';
 import { InteractionManager } from '../interaction/InteractionManager';
 import { Node, Edge, FlowState, Theme } from '../types';
 import { ThemeManager } from '../theme/ThemeManager';
+import { PluginHost, type PluginHostOptions } from '../plugins/PluginHost';
 
 export interface SciFlowOptions {
   container: HTMLElement;
@@ -15,6 +16,7 @@ export interface SciFlowOptions {
   direction?: 'horizontal' | 'vertical';
   minZoom?: number;
   maxZoom?: number;
+  plugins?: PluginHostOptions;
 }
 
 export class SciFlow {
@@ -25,9 +27,8 @@ export class SciFlow {
   private gridRenderer: GridRenderer;
   private options: SciFlowOptions;
   private unsubscribe: () => void;
-
-  // Theming State
   private themeManager: ThemeManager;
+  public plugins: PluginHost;
 
   constructor(options: SciFlowOptions) {
     this.options = { renderer: 'auto', autoSwitchThreshold: 1000, theme: 'light', ...options };
@@ -62,10 +63,13 @@ export class SciFlow {
     this.renderer.stateManager = this.stateManager;
 
     // Subscribe to state changes and trigger render
+    this.plugins = new PluginHost(this.container, this.stateManager, this.stateManager.history, this.options.plugins);
+
+    // Subscribe to state changes and trigger render
     this.unsubscribe = this.stateManager.subscribe((state: FlowState) => {
-      // Pass the node registry map via a getter for the renderer to instanciate nodes
       this.gridRenderer.render(state);
       this.renderer.render(state, this.stateManager.getNodeRegistry());
+      this.plugins.onStateChange();
       this.checkRendererThreshold(state.nodes.size);
     });
   }
@@ -227,6 +231,7 @@ export class SciFlow {
     this.unsubscribe();
     this.interactionManager.destroy();
     this.themeManager.destroy();
+    this.plugins.destroy();
     this.gridRenderer.destroy();
     this.renderer.destroy();
   }

@@ -8,7 +8,7 @@ export class StateManager {
   private state: FlowState;
   private listeners: Set<Listener> = new Set();
   public readonly id: string;
-  private history = new HistoryManager();
+  public readonly history = new HistoryManager();
   private registry = new RegistryManager();
 
   public onNodesChange?: (nodes: Node[]) => void;

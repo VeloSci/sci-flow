@@ -32,7 +32,7 @@ const initMinimap = () => {
   }
   
   if (containerRef.value && props.engine) {
-    const stateManager = (props.engine as any).stateManager;
+    const stateManager = props.engine.stateManager;
     minimapInstance = new Minimap({
       container: containerRef.value,
       stateManager,

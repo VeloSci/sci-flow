@@ -219,7 +219,7 @@ export class NodeManager {
                         p.setAttribute('cx', '-6');
 
                         const labelId = `label-in-${node.id}-${inputIds[i]}`;
-                        let label = document.getElementById(labelId) as unknown as SVGTextElement | null;
+                        let label = document.getElementById(labelId) as SVGTextElement | null;
                         if (!label) {
                             label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
                             label.id = labelId;
@@ -240,7 +240,7 @@ export class NodeManager {
                         p.setAttribute('cx', String(w + 6));
 
                         const labelId = `label-out-${node.id}-${outputIds[i]}`;
-                        let label = document.getElementById(labelId) as unknown as SVGTextElement | null;
+                        let label = document.getElementById(labelId) as SVGTextElement | null;
                         if (!label) {
                             label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
                             label.id = labelId;

@@ -3,6 +3,7 @@ import { FlowState, Node, Position } from '../types';
 import { getEdgePath } from '../utils/edges';
 import { PathfindingWorkerResponse } from '../workers/pathfinding.worker';
 import { SVG_RENDERER_STYLES } from './SVGRendererStyles';
+import { TOUCH_RESPONSIVE_STYLES } from './TouchStyles';
 import { getPortAnchor } from '../utils/ports';
 import { NodeManager } from './NodeManager';
 import { EdgeManager } from './EdgeManager';
@@ -45,10 +46,10 @@ export class SVGRenderer extends BaseRenderer {
     this.svg.style.top = '0';
     this.svg.style.left = '0';
     this.svg.style.zIndex = '1';
-    this.svg.setAttribute('class', 'sci-flow-svg-renderer');
+    this.svg.setAttribute('class', 'sci-flow-svg sci-flow-svg-renderer');
 
     this.styleEl = document.createElement('style');
-    this.styleEl.textContent = SVG_RENDERER_STYLES;
+    this.styleEl.textContent = SVG_RENDERER_STYLES + TOUCH_RESPONSIVE_STYLES;
     document.head.appendChild(this.styleEl);
 
     this.edgesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');

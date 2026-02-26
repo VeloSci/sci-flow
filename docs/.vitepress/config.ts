@@ -36,6 +36,14 @@ export default defineConfig({
             { text: 'Themes & Layout', link: '/guide/themes-and-layout' },
             { text: 'Rendering', link: '/guide/rendering' }
           ]
+        },
+        {
+          text: 'Features',
+          items: [
+            { text: 'Plugins', link: '/guide/plugins' },
+            { text: 'Mobile & Touch', link: '/guide/mobile-touch' },
+            { text: 'Framework Adapters', link: '/guide/adapters' }
+          ]
         }
       ],
       '/api/': [
@@ -43,7 +51,9 @@ export default defineConfig({
           text: 'API Reference',
           items: [
             { text: 'Core API', link: '/api/core' },
-            { text: 'React API', link: '/api/react' }
+            { text: 'React API', link: '/api/react' },
+            { text: 'Vue API', link: '/api/vue' },
+            { text: 'Svelte API', link: '/api/svelte' }
           ]
         }
       ],
@@ -63,6 +73,26 @@ export default defineConfig({
             { text: 'Complex Ports', link: '/examples/complex-ports' },
             { text: 'Smart Routing', link: '/examples/smart-routing' },
             { text: 'Validation & Colors', link: '/examples/validation' }
+          ]
+        },
+        {
+          text: 'Feature Examples',
+          items: [
+            { text: 'Drag & Drop', link: '/examples/drag-and-drop' },
+            { text: 'Export & Animation', link: '/examples/export-animation' },
+            { text: 'Collision & LOD', link: '/examples/collision-lod' }
+          ]
+        },
+        {
+          text: 'Phase 9 Features',
+          items: [
+            { text: 'Snap & Guides', link: '/examples/snap-and-guides' },
+            { text: 'Groups & Layouts', link: '/examples/groups-and-layouts' },
+            { text: 'Search & Zoom', link: '/examples/search-and-zoom' },
+            { text: 'Snapshots & History', link: '/examples/snapshots-and-history' },
+            { text: 'Shortcuts & Reconnect', link: '/examples/shortcuts-and-reconnect' },
+            { text: 'Perf, A11y & Plugins', link: '/examples/perf-a11y-plugins' },
+            { text: 'Bundling, Notes & Collab', link: '/examples/bundling-notes-collab' }
           ]
         }
       ],
