@@ -124,8 +124,24 @@ export interface Edge {
     lineStyle?: 'solid' | 'dashed' | 'dotted';
     stroke?: string;
     strokeWidth?: number;
-    animationType?: 'pulse' | 'arrows' | 'symbols' | 'dash' | 'dotted' | 'beam';
+    animationType?:
+    // Phase 1 — Dash/CSS animations
+    | 'draw' | 'draw-reverse' | 'march' | 'march-reverse'
+    | 'draw-erase' | 'fade' | 'thick-pulse' | 'color-pulse'
+    | 'dots-flow' | 'comet' | 'glow' | 'wipe'
+    | 'scale-center' | 'scale-start'
+    | 'wavy-draw' | 'zigzag-draw' | 'fusion'
+    // Phase 2 — Object-based traveling animations
+    | 'data-packet' | 'ping-pong' | 'swarm'
+    | 'arrow-travel' | 'arrow-flow' | 'draw-arrow'
+    | 'arrow-bounce' | 'direction-pulse'
+    | 'spin-square' | 'morph-slide' | 'sine-orbit'
+    | 'spin-x' | 'radar'
+    // Legacy aliases (backward compat)
+    | 'pulse' | 'arrows' | 'symbols' | 'dash' | 'dotted' | 'beam';
     animationColor?: string;
+    animationDuration?: string;   // e.g. '2s', '500ms'
+    animationEasing?: string;     // e.g. 'linear', 'ease-in-out', 'cubic-bezier(...)'
   };
   data?: JsonMap;
 }
@@ -138,13 +154,7 @@ export interface FlowState {
   draftEdge?: { sourceNodeId: string; sourcePortId: string; targetPosition: Position };
   smartGuides?: { x?: number, y?: number }[];
   defaultEdgeType?: 'straight' | 'bezier' | 'step' | 'smart';
-  defaultEdgeStyle?: {
-    lineStyle?: 'solid' | 'dashed' | 'dotted';
-    stroke?: string;
-    strokeWidth?: number;
-    animationType?: 'pulse' | 'arrows' | 'symbols' | 'dash' | 'dotted' | 'beam';
-    animationColor?: string;
-  };
+  defaultEdgeStyle?: Edge['style'];
 }
 
 export interface Connection {

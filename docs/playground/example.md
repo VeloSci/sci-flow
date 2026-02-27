@@ -1,15 +1,51 @@
 ---
-layout: page
+layout: doc
 title: Full Example
+outline: false
+pageClass: full-width-page
 ---
 
-# Full Example Application
+<style>
+/* Scoped overrides for full-width layout */
+.full-width-page .VPDoc .container {
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 40px !important;
+}
 
-The complete `sci-flow` playground with **all 20+ features** active. Try everything directly in the docs:
+.full-width-page .aside {
+  display: none !important;
+  width: 0px !important;
+}
+
+.full-width-page .content-container {
+  max-width: 100% !important;
+  padding-bottom: 30px !important;
+}
+
+.full-width-page .VPDoc .content {
+  max-width: 100% !important;
+  padding: 0 !important;
+}
+
+.full-width-page .VPDoc .content-body {
+  max-width: 100% !important;
+}
+
+/* Ensure the markdown content itself also expands */
+.full-width-page .vp-doc {
+  max-width: 100% !important;
+}
+
+/* Hide padding/margins on side containers if they still exist */
+.full-width-page .VPDoc .aside-container {
+  display: none !important;
+}
+</style>
+
+# Full Example
 
 <FullExampleApp />
-
----
 
 ## Active Features
 
