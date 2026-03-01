@@ -1,3 +1,6 @@
+@tailwind components;
+@tailwind utilities;
+
 /* ============================================
    sci-flow Documentation - Technical Theme
    Inspired by scichart-engine

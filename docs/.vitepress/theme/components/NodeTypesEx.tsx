@@ -6,7 +6,7 @@ export interface NodeComponentProps {
     engine: SciFlow | null;
 }
 
-export const GeneratorNodeEx: React.FC<NodeComponentProps> = () => (
+export const GeneratorNodeEx: React.FC<NodeComponentProps> & { nodeType?: string } = () => (
     <div style={{ padding: '0px' }}>
         <p style={{ margin: '0 0 8px 0', fontSize: '11px', color: '#888' }}>Outputs a constant signal.</p>
         <div style={{ padding: 8, background: '#1a1a1a', borderRadius: 4, textAlign: 'center' }}>
@@ -14,23 +14,23 @@ export const GeneratorNodeEx: React.FC<NodeComponentProps> = () => (
         </div>
     </div>
 );
-(GeneratorNodeEx as any).nodeType = 'generator';
+GeneratorNodeEx.nodeType = 'generator';
 
-export const ProcessorNodeEx: React.FC<NodeComponentProps> = () => (
+export const ProcessorNodeEx: React.FC<NodeComponentProps> & { nodeType?: string } = () => (
     <div style={{ padding: '0px' }}>
         <p style={{ margin: 0, fontSize: '11px', color: '#888' }}>Processes signal into filtered streams.</p>
     </div>
 );
-(ProcessorNodeEx as any).nodeType = 'processor';
+ProcessorNodeEx.nodeType = 'processor';
 
-export const CombinerNodeEx: React.FC<NodeComponentProps> = () => (
+export const CombinerNodeEx: React.FC<NodeComponentProps> & { nodeType?: string } = () => (
     <div style={{ padding: '0px' }}>
         <p style={{ margin: 0, fontSize: '11px', color: '#888' }}>Combines 2 signals into 1.</p>
     </div>
 );
-(CombinerNodeEx as any).nodeType = 'combiner';
+CombinerNodeEx.nodeType = 'combiner';
 
-export const ViewerNodeEx: React.FC<NodeComponentProps> = () => (
+export const ViewerNodeEx: React.FC<NodeComponentProps> & { nodeType?: string } = () => (
     <div style={{ padding: '0px' }}>
         <p style={{ margin: '0 0 8px 0', fontSize: '11px', color: '#888' }}>Visualizes input data.</p>
         <div style={{ width: '100%', height: 40, background: '#000', borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -38,11 +38,11 @@ export const ViewerNodeEx: React.FC<NodeComponentProps> = () => (
         </div>
     </div>
 );
-(ViewerNodeEx as any).nodeType = 'viewer';
+ViewerNodeEx.nodeType = 'viewer';
 
-export const MultiNodeEx: React.FC<NodeComponentProps> = () => (
+export const MultiNodeEx: React.FC<NodeComponentProps> & { nodeType?: string } = () => (
     <div style={{ padding: '0px' }}>
         <p style={{ margin: 0, fontSize: '11px', color: '#888' }}>Complex I/O Processor</p>
     </div>
 );
-(MultiNodeEx as any).nodeType = 'multi';
+MultiNodeEx.nodeType = 'multi';
