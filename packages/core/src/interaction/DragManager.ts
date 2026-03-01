@@ -16,12 +16,13 @@ export class DragManager {
     constructor(
         private container: HTMLElement,
         private stateManager: StateManager,
+        private plugins: import('../plugins/PluginHost').PluginHost | undefined,
         private options: DragOptions
     ) {}
 
-    public startDrag(nodeIds: string[], flowPos: Position, pointerId: number): void {
+    public startDrag(itemIds: string[], flowPos: Position, pointerId: number): void {
         this.isDraggingNodes = true;
-        this.draggedNodeIds = nodeIds;
+        this.draggedNodeIds = itemIds;
         this.lastDragPos = flowPos;
         this.container.setPointerCapture(pointerId);
         this.container.classList.add('sci-flow-dragging');
@@ -87,8 +88,12 @@ export class DragManager {
                     }
                 }
 
-                if (this.options.snapToGrid && !snappedX) newX = Math.round(newX / this.options.gridSize) * this.options.gridSize;
-                if (this.options.snapToGrid && !snappedY) newY = Math.round(newY / this.options.gridSize) * this.options.gridSize;
+                // Collision Resolution
+                if (this.plugins?.collision && !e.altKey) {
+                    const collidedPos = this.plugins.collision.resolve(id, { x: newX, y: newY });
+                    newX = collidedPos.x;
+                    newY = collidedPos.y;
+                }
 
                 dx = newX - node.position.x;
                 dy = newY - node.position.y;
@@ -103,8 +108,15 @@ export class DragManager {
         if (dx !== 0 || dy !== 0) {
             const idsToMove = new Set([...this.draggedNodeIds, ...getDescendants(state.nodes, this.draggedNodeIds)]);
             idsToMove.forEach(id => {
-                const node = state.nodes.get(id);
-                if (node) this.stateManager.updateNodePosition(id, node.position.x + dx, node.position.y + dy, true);
+                if (id.startsWith('note-') && this.plugins) {
+                    const note = this.plugins.stickyNotes.get(id);
+                    if (note && !note.pinned) {
+                        this.plugins.stickyNotes.move(id, note.position.x + dx, note.position.y + dy);
+                    }
+                } else {
+                    const node = state.nodes.get(id);
+                    if (node) this.stateManager.updateNodePosition(id, node.position.x + dx, node.position.y + dy, true);
+                }
             });
             this.lastDragPos = { x: this.lastDragPos.x + dx, y: this.lastDragPos.y + dy };
         }

@@ -55,7 +55,7 @@ export class EdgeAnnotationManager {
                     el = document.createElement('div');
                     el.className = 'sci-flow-edge-annotation';
                     el.style.cssText = `
-                        position:absolute; pointer-events:auto; z-index:490;
+                        position:absolute; pointer-events:auto; z-index:var(--sf-z-edges, 10);
                         transform:translate(-50%,-50%);
                         background:var(--sf-node-bg,#2a2a2a); color:var(--sf-node-text,#fff);
                         padding:2px 6px; border-radius:3px; font-size:10px;

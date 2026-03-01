@@ -14,6 +14,7 @@ export interface InteractionOptions {
     snapToGrid?: boolean;
     gridSize?: number;
     showSmartGuides?: boolean;
+    plugins?: import('../plugins/PluginHost').PluginHost;
 }
 
 export class InteractionManager {
@@ -31,15 +32,15 @@ export class InteractionManager {
     private isSpacePressed = false;
     private cleanupEvents: Array<() => void> = [];
 
-    constructor({ container, stateManager, snapToGrid = true, gridSize = 20, showSmartGuides = true }: InteractionOptions) {
+    constructor({ container, stateManager, snapToGrid = true, gridSize = 20, showSmartGuides = true, plugins }: InteractionOptions) {
         this.container = container;
         this.stateManager = stateManager;
 
         this.panZoom = new PanZoomManager(stateManager);
         this.selection = new SelectionManager(container, stateManager);
         this.connection = new ConnectionManager(container, stateManager);
-        this.drag = new DragManager(container, stateManager, { snapToGrid, gridSize, showSmartGuides });
-        this.shortcuts = new ShortcutManager(stateManager);
+        this.drag = new DragManager(container, stateManager, plugins, { snapToGrid, gridSize, showSmartGuides });
+        this.shortcuts = new ShortcutManager(stateManager, plugins);
 
         this.bindEvents();
     }
@@ -99,6 +100,12 @@ export class InteractionManager {
         const state = this.stateManager.getState();
         const rect = this.container.getBoundingClientRect();
         const flowPos = this.screenToFlow({ x: e.clientX, y: e.clientY }, state.viewport, rect);
+
+        const noteEl = target.closest('.sci-flow-sticky-note') as HTMLElement;
+        if (noteEl && noteEl.id) {
+            this.drag.startDrag([noteEl.id], flowPos, e.pointerId);
+            return;
+        }
 
         const clickedNodeId = this.findNodeAt(flowPos);
         if (clickedNodeId) {
