@@ -3,18 +3,33 @@ export const SVG_RENDERER_STYLES = `
     user-select: none;
     -webkit-user-select: none;
     background-color: transparent;
+    pointer-events: none; /* Let events pass through transparent canvas */
   }
 
   /* Main background should be on the container or a separate layer */
   .sci-flow-container {
+    --sf-z-background: 0;
+    --sf-z-edges: 10;
+    --sf-z-annotations: 15;
+    --sf-z-nodes: 20;
+    --sf-z-notes-bg: 5;
+    --sf-z-notes-fg: 50;
+    --sf-z-overlay: 100;
+    --sf-z-ui: 1000;
+
     background-color: var(--sf-bg);
     position: relative;
     overflow: hidden;
   }
 
+  .sci-flow-nodes, .sci-flow-edges {
+    pointer-events: none;
+  }
+
   .sci-flow-node-wrapper {
     position: relative;
     display: inline-block;
+    pointer-events: all; /* Important: nodes must catch events */
     background-color: var(--sf-node-bg);
     border: 1px solid var(--sf-node-border);
     border-radius: 6px;
@@ -212,5 +227,21 @@ export const SVG_RENDERER_STYLES = `
 
   .sci-flow-vertical .sci-flow-node-ports-area {
     display: none !important;
+  }
+  .sci-flow-edge-label {
+    position: absolute;
+    top: 0; left: 0;
+    pointer-events: auto;
+    z-index: 11; /* Above edges (10), below annotations (15) and nodes (20) */
+    transform: translate(-50%, -50%);
+    background: var(--sf-node-bg, #2a2a2a);
+    color: var(--sf-node-text, #fff);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    border: 1px solid var(--sf-node-border, #444);
+    white-space: nowrap;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    user-select: none;
   }
 `;

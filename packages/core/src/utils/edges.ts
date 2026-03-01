@@ -32,45 +32,68 @@ export const getStraightPath = (source: Position, target: Position): string => {
 /**
  * Calculates a stepped orthogonal path (Manhattan routing)
  */
-export const getStepPath = (source: Position, target: Position, borderRadius = 0): string => {
-    const deltaX = target.x - source.x;
-    const midX = source.x + deltaX / 2;
+export const getStepPath = (source: Position, target: Position, borderRadius = 0, padding = 40): string => {
+    // 1. Extend horizontally from the source by `padding`
+    const exitX = source.x + padding;
+    
+    // For backwards pointing edges (target is to the left of source + padding)
+    // we need to add an extra vertical step to go around, but for standard
+    // forward/downward flow, exitX is sufficient.
+    const isBackwards = target.x <= exitX;
+    
+    // If it's a backwards edge, we might need a more complex path, but for 
+    // a basic 3-segment orthogonal path (Horizontal -> Vertical -> Horizontal):
+    // Path: Source -> (exitX, source.y) -> (exitX, target.y) -> Target
     
     if (borderRadius <= 0) {
-       return `M ${source.x},${source.y} L ${midX},${source.y} L ${midX},${target.y} L ${target.x},${target.y}`;
+        if (isBackwards) {
+            // For backwards edges, go out, down/up to half distance, left, then to target
+            const midY = source.y + (target.y - source.y) / 2;
+            const targetPaddingX = target.x - padding;
+            return `M ${source.x},${source.y} L ${exitX},${source.y} L ${exitX},${midY} L ${targetPaddingX},${midY} L ${targetPaddingX},${target.y} L ${target.x},${target.y}`;
+        }
+        return `M ${source.x},${source.y} L ${exitX},${source.y} L ${exitX},${target.y} L ${target.x},${target.y}`;
     }
 
+    // --- Rounded version ---
+    const deltaX1 = exitX - source.x;
     const deltaY = target.y - source.y;
-    // Calculate safe radius (cannot exceed half of any segment length)
-    const safeR = Math.min(borderRadius, Math.abs(deltaX / 2), Math.abs(deltaY / 2));
+    const deltaX2 = target.x - exitX;
+    if (isBackwards) {
+        // Fallback to straight corners for complex backwards routing
+        const midY = source.y + deltaY / 2;
+        const targetPaddingX = target.x - padding;
+        return `M ${source.x},${source.y} L ${exitX},${source.y} L ${exitX},${midY} L ${targetPaddingX},${midY} L ${targetPaddingX},${target.y} L ${target.x},${target.y}`;
+    }
+
+    // Calculate safe radius
+    const safeR = Math.min(borderRadius, Math.abs(deltaX1), Math.abs(deltaY / 2), Math.abs(deltaX2));
     
     if (safeR <= 1) {
-       return `M ${source.x},${source.y} L ${midX},${source.y} L ${midX},${target.y} L ${target.x},${target.y}`;
+        return `M ${source.x},${source.y} L ${exitX},${source.y} L ${exitX},${target.y} L ${target.x},${target.y}`;
     }
 
-    const sx = Math.sign(deltaX);
+    const sx1 = Math.sign(deltaX1);
     const sy = Math.sign(deltaY);
+    const sx2 = Math.sign(deltaX2);
 
-    // Points: P0(source) -> P1(mid, sy) -> P2(mid, ty) -> P3(target)
-    // Using absolute A (arc) commands: (rx ry x-axis-rotation large-arc-flag sweep-flag x y)
-    // Sweep flag: 1 if clockwise, 0 if counter-clockwise.
-    // Corner 1 (at midX, source.y): moves horizontally then vertically
-    const c1x = midX - safeR * sx;
+    // Corner 1 (at exitX, source.y): moves horizontally then vertically
+    const c1x = exitX - safeR * sx1;
     const c1y = source.y + safeR * sy;
     
-    // Corner 2 (at midX, target.y): moves vertically then horizontally
-    const c2x = midX + safeR * sx;
+    // Corner 2 (at exitX, target.y): moves vertically then horizontally
+    const c2x = exitX + safeR * sx2;
     const c2y = target.y - safeR * sy;
 
-    // Corner 1 sweep: if sx*sy > 0 (1,1 or -1,-1) then clockwise (1), else counter-clockwise (0)
-    const sweep1 = (sx * sy > 0) ? 1 : 0;
-    // Corner 2 sweep is always the opposite of corner 1
-    const sweep2 = (sx * sy > 0) ? 0 : 1;
+    // Corner 1 sweep: if sx1*sy > 0 then clockwise (1), else counter-clockwise (0)
+    const sweep1 = (sx1 * sy > 0) ? 1 : 0;
+    // Corner 2 sweep: if crossing vertically then horizontally, sign logic
+    const sweep2 = (sx2 * sy > 0) ? 0 : 1;
 
     return `M ${source.x},${source.y} ` +
            `L ${c1x},${source.y} ` +
-           `A ${safeR},${safeR} 0 0 ${sweep1} ${midX},${c1y} ` +
-           `L ${midX},${c2y} ` +
+           `A ${safeR},${safeR} 0 0 ${sweep1} ${exitX},${c1y} ` +
+           `L ${exitX},${c2y} ` +
            `A ${safeR},${safeR} 0 0 ${sweep2} ${c2x},${target.y} ` +
            `L ${target.x},${target.y}`;
 }

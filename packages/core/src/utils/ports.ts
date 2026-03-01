@@ -23,7 +23,7 @@ export function getPortAnchor(node: Node, portId: string, container?: ParentNode
   }
 
   // Fallback: calculate position (for initial render before DOM is ready)
-  const nw = node.style?.width || 140;
+  const nw = node.style?.width || 160;
   const nh = node.style?.height || 100;
   const dir = direction || 'horizontal';
 
