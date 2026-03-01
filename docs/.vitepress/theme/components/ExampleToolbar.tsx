@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import type { SciFlow, Edge } from '@sci-flow/core';
+import { Plus, Maximize, GitMerge, FileDown, FileUp, Sun, Moon } from 'lucide-react';
+import { EdgeAnimationSelector } from './EdgeAnimationSelector';
 
 /** Extracted toolbar for the FullExampleApp — routing, animation, line style, file ops. */
 export function ExampleToolbar({ engine, themeMode, setThemeMode, direction, toggleDirection }: {
@@ -100,66 +102,56 @@ export function ExampleToolbar({ engine, themeMode, setThemeMode, direction, tog
     }
   };
 
-  const animTypes = ['none', 'dash', 'dotted', 'pulse', 'arrows', 'symbols', 'beam'];
   const lineStyles = ['none', 'solid', 'dashed', 'dotted'];
 
-  return (
-    <div style={{ position: 'relative', zIndex: 100, display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(8px)', borderBottom: '1px solid rgba(255,255,255,0.08)', flexWrap: 'wrap' }}>
-      <button onClick={handleAddNode} style={accBtnStyle}>+ Add Node</button>
-      <button onClick={() => engine?.fitView()} style={btnStyle}>⊡ Fit</button>
-      <button onClick={toggleDirection} style={btnStyle}>
-        {direction === 'horizontal' ? '⬇ Vert' : '➡ Horiz'}
-      </button>
-      <div style={dividerStyle} />
+  const btnClasses = "flex items-center gap-1.5 px-3 py-1.5 rounded cursor-pointer bg-white/10 hover:bg-white/20 text-white border border-white/20 text-[11px] font-medium transition-colors";
+  const accBtnClasses = "flex items-center gap-1.5 px-3 py-1.5 rounded cursor-pointer bg-emerald-500 hover:bg-emerald-400 text-black border-none text-[11px] font-bold transition-colors";
+  const selClasses = "flex items-center px-2 py-1.5 rounded cursor-pointer bg-black/40 text-white border border-white/20 text-[11px] font-medium transition-colors outline-none";
+  const dividerClasses = "w-[1px] h-5 bg-white/20 mx-1";
 
-      <select value={routingMode} onChange={e => applyRoutingMode(e.target.value)} style={selStyle}>
+  return (
+    <div className="relative z-[100] flex items-center gap-2 px-3 py-2 bg-black/40 backdrop-blur-md border-b border-white/10 flex-wrap">
+      <button onClick={handleAddNode} className={accBtnClasses}><Plus size={14}/> Add Node</button>
+      <button onClick={() => engine?.fitView()} className={btnClasses}><Maximize size={14}/> Fit</button>
+      <button onClick={toggleDirection} className={btnClasses}>
+        <GitMerge size={14} className={direction === 'horizontal' ? 'rotate-90' : ''} />
+        {direction === 'horizontal' ? 'Vert' : 'Horiz'}
+      </button>
+      <div className={dividerClasses} />
+
+      <select value={routingMode} onChange={e => applyRoutingMode(e.target.value)} className={selClasses}>
         <option value="bezier">Bezier</option>
         <option value="straight">Straight</option>
         <option value="step">Step</option>
         <option value="smart">Smart(A★)</option>
       </select>
 
-      <select value={lineStyle} onChange={e => applyLineStyle(e.target.value)} style={selStyle}>
+      <select value={lineStyle} onChange={e => applyLineStyle(e.target.value)} className={selClasses}>
         {lineStyles.map(s => <option key={s} value={s}>{s === 'none' ? 'Line:—' : s}</option>)}
       </select>
-      <div style={dividerStyle} />
+      <div className={dividerClasses} />
 
-      <span style={{ fontSize: 10, color: '#aaa' }}>Anim:</span>
-      <select value={animType} onChange={e => applyEdgeAnimation(e.target.value)} style={selStyle}>
-        {animTypes.map(t => <option key={t} value={t}>{t === 'none' ? 'None' : t}</option>)}
-      </select>
+      <div className={dividerClasses} />
+      <EdgeAnimationSelector 
+        currentAnim={animType} 
+        onSelect={applyEdgeAnimation} 
+        lineStyle={lineStyle as 'solid' | 'dashed' | 'dotted'} 
+      />
 
       {animType === 'beam' && (
         <input type="color" value={beamColor} onChange={e => { setBeamColor(e.target.value); applyEdgeAnimation('beam'); }}
-          style={{ width: 24, height: 24, border: 'none', background: 'none', cursor: 'pointer' }} />
+          className="w-6 h-6 border-none bg-transparent cursor-pointer rounded-full overflow-hidden" />
       )}
-      <div style={{ flex: 1 }} />
+      <div className="flex-1" />
 
-      <label style={{ ...btnStyle, cursor: 'pointer' }}>
-        📂 <input type="file" accept=".json" style={{ display: 'none' }} onChange={handleUpload} />
+      <label className={`${btnClasses} cursor-pointer`}>
+        <FileUp size={14}/>
+        <input type="file" accept=".json" className="hidden" onChange={handleUpload} />
       </label>
-      <button onClick={handleDownload} style={btnStyle}>💾</button>
-      <button onClick={() => { const n = themeMode === 'light' ? 'dark' : 'light'; setThemeMode(n); engine?.setTheme(n); }} style={btnStyle}>
-        {themeMode === 'dark' ? '☀️' : '🌙'}
+      <button onClick={handleDownload} className={btnClasses}><FileDown size={14}/></button>
+      <button onClick={() => { const n = themeMode === 'light' ? 'dark' : 'light'; setThemeMode(n); engine?.setTheme(n); }} className={btnClasses}>
+        {themeMode === 'dark' ? <Sun size={14}/> : <Moon size={14}/>}
       </button>
     </div>
   );
 }
-
-const btnStyle: React.CSSProperties = {
-  padding: '5px 10px', cursor: 'pointer', borderRadius: 4,
-  background: 'rgba(255,255,255,0.08)', color: '#fff',
-  border: '1px solid rgba(255,255,255,0.15)', fontSize: 11, fontFamily: 'inherit',
-};
-
-const accBtnStyle: React.CSSProperties = {
-  ...btnStyle, background: 'var(--sf-edge-active, #00f2ff)', color: '#000', border: 'none', fontWeight: 'bold',
-};
-
-const selStyle: React.CSSProperties = {
-  ...btnStyle, padding: '4px 6px', background: 'rgba(0,0,0,0.4)',
-};
-
-const dividerStyle: React.CSSProperties = {
-  width: 1, height: 20, background: 'rgba(255,255,255,0.15)', margin: '0 2px',
-};

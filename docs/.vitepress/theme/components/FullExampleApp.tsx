@@ -46,11 +46,6 @@ const initialEdges: Edge[] = [
   { id: 'e4', source: 'n2', target: 'n4', sourceHandle: 'low', targetHandle: 'in2', type: 'bezier', data: { label: 'Low Pass' } },
 ];
 
-const kbdStyle: React.CSSProperties = {
-  background: 'rgba(255,255,255,0.1)', padding: '2px 5px', borderRadius: 3,
-  fontSize: 9, marginRight: 3, border: '1px solid rgba(255,255,255,0.2)',
-};
-
 export const FullExampleApp = ({ theme = 'dark' }: { theme?: 'light' | 'dark' }) => {
   const [themeMode, setThemeMode] = useState<'light' | 'dark'>(theme);
   const [direction, setDirection] = useState<'horizontal' | 'vertical'>('horizontal');
@@ -62,15 +57,49 @@ export const FullExampleApp = ({ theme = 'dark' }: { theme?: 'light' | 'dark' })
     engine?.setDirection(next);
   };
 
+  React.useEffect(() => {
+    if (engine) {
+      engine.stateManager.registerNodeType({
+        type: 'generator',
+        evaluate: () => ({ out1: Math.random() * 100 })
+      });
+      engine.stateManager.registerNodeType({
+        type: 'processor',
+        evaluate: (inputs) => ({
+          high: (inputs.in1 as number || 0) * 1.5,
+          low: (inputs.in1 as number || 0) * 0.5
+        })
+      });
+      engine.stateManager.registerNodeType({
+        type: 'combiner',
+        evaluate: (inputs) => ({
+          out1: (inputs.in1 as number || 0) + (inputs.in2 as number || 0)
+        })
+      });
+      engine.stateManager.registerNodeType({
+        type: 'viewer',
+        evaluate: (inputs) => ({ result: inputs.in1 })
+      });
+
+      // Add a sticky note if none exists
+      if (engine.plugins.stickyNotes.getAll().length === 0) {
+        engine.plugins.stickyNotes.add(
+          'Welcome to Sci-Flow Playground!\nDrag me around and try connecting nodes.',
+          50, 50, '#ffb74d'
+        );
+      }
+    }
+  }, [engine]);
+
   return (
-    <div style={{ width: '100%', height: '800px', position: 'relative', border: '1px solid var(--vp-c-divider)', borderRadius: 8, overflow: 'hidden', background: themeMode === 'dark' ? '#0e1116' : '#f8f9fa', display: 'flex', flexDirection: 'column' }}>
+    <div className={`w-full h-[800px] relative border rounded-lg overflow-hidden flex flex-col ${themeMode === 'dark' ? 'bg-[#0e1116] border-white/10' : 'bg-[#f8f9fa] border-black/10'}`}>
 
       <ExampleToolbar
         engine={engine} themeMode={themeMode} setThemeMode={setThemeMode}
         direction={direction} toggleDirection={toggleDirection}
       />
 
-      <div style={{ flex: 1, position: 'relative' }}>
+      <div className="flex-1 relative">
         <ReactSciFlow
           initialNodes={initialNodes}
           initialEdges={initialEdges}
@@ -89,20 +118,21 @@ export const FullExampleApp = ({ theme = 'dark' }: { theme?: 'light' | 'dark' })
         <NodePaletteDoc />
         <FeaturePanelDoc engine={engine} />
 
-        <SciFlowMiniMap
-          engine={engine} width={200} height={120}
-          style={{ position: 'absolute', bottom: 10, right: 10, zIndex: 10,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-            border: '1px solid rgba(255,255,255,0.1)', borderRadius: 6, overflow: 'hidden' }}
-          nodeColor={themeMode === 'dark' ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)'}
-          viewportColor={themeMode === 'dark' ? 'rgba(100,200,255,0.5)' : 'rgba(0,100,255,0.5)'}
-        />
+        <div className="absolute bottom-2.5 right-2.5 z-10 shadow-xl rounded-md overflow-hidden border border-white/10">
+          <SciFlowMiniMap
+            engine={engine} width={200} height={120}
+            nodeColor={themeMode === 'dark' ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.4)'}
+            viewportColor={themeMode === 'dark' ? 'rgba(100,200,255,0.5)' : 'rgba(0,100,255,0.5)'}
+          />
+        </div>
 
         {/* Keyboard hints */}
-        <div style={{ position: 'absolute', bottom: 10, left: 190, zIndex: 10, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', padding: '6px 8px', borderRadius: 5, color: '#fff', fontSize: 10 }}>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {[['Ctrl+C','Copy'],['Ctrl+Z','Undo'],['Del','Del'],['↑↓←→','Nudge'],['Ctrl+A','All'],['Space','Pan']].map(([k,v]) => (
-              <span key={k}><kbd style={kbdStyle}>{k}</kbd>{v}</span>
+        <div className="absolute bottom-2.5 left-[190px] z-10 bg-black/60 backdrop-blur-md px-2 py-1.5 rounded-md text-white text-[10px]">
+          <div className="flex gap-2 flex-wrap">
+            {[['Ctrl+C','Copy'],['Ctrl+Z','Undo'],['Del','Del'],['↑↓←→','Nudge'],['Space','Pan'], ['F', 'Fit View']].map(([k,v]) => (
+              <span key={k} className="flex items-center gap-1">
+                <kbd className="bg-white/10 px-1.5 py-0.5 rounded-[3px] text-[9px] border border-white/20 font-mono tracking-tighter">{k}</kbd>{v}
+              </span>
             ))}
           </div>
         </div>

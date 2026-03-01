@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { SciFlow } from '@sci-flow/core';
+import { LayoutDashboard, Layers, Activity, FlaskConical } from 'lucide-react';
 
 interface Props {
   engine: SciFlow | null;
@@ -43,8 +44,8 @@ export function FeaturePanelDoc({ engine }: Props) {
   };
 
   return (
-    <div style={panelStyle}>
-      <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>🔬 Features</div>
+    <div className="absolute right-2 top-2 z-[50] bg-black/80 p-2.5 rounded-md border border-white/10 text-white w-[180px] backdrop-blur-md font-sans">
+      <div className="text-xs font-semibold mb-1.5 flex items-center gap-1.5"><FlaskConical size={14} className="text-emerald-400" /> Features</div>
 
       <Row title="Export">
         {(['png', 'svg', 'json'] as const).map(f => (
@@ -53,7 +54,7 @@ export function FeaturePanelDoc({ engine }: Props) {
       </Row>
 
       <Row title="Animate">
-        <Btn label="Auto-Layout" onClick={handleAnimateLayout} full />
+        <Btn label={<><LayoutDashboard size={12}/> Auto-Layout</>} onClick={handleAnimateLayout} full />
       </Row>
 
       <Row title="Collision">
@@ -63,16 +64,17 @@ export function FeaturePanelDoc({ engine }: Props) {
       </Row>
 
       <Row title="LOD">
-        <Btn label="Check Level" onClick={() => alert(`LOD: ${engine?.plugins.lod.getLevel()}`)} full />
+        <Btn label={<><Layers size={12}/> Check Level</>} onClick={() => alert(`LOD: ${engine?.plugins.lod.getLevel()}`)} full />
       </Row>
 
       <Row title="Evaluate">
-        <Btn label="Run Pipeline" onClick={handleEvaluate} full />
+        <Btn label={<><Activity size={12}/> Run Pipeline</>} onClick={handleEvaluate} full />
       </Row>
 
       {evalResult && (
-        <pre style={{ fontSize: 8, maxHeight: 60, overflow: 'auto', margin: '2px 0 0',
-          background: '#111', padding: 4, borderRadius: 3, color: '#4ecdc4' }}>{evalResult}</pre>
+        <pre className="text-[8px] max-h-[60px] overflow-auto mt-0.5 bg-[#111] p-1 rounded-sm text-emerald-400 font-mono">
+          {evalResult}
+        </pre>
       )}
     </div>
   );
@@ -80,29 +82,23 @@ export function FeaturePanelDoc({ engine }: Props) {
 
 function Row({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom: 6 }}>
-      <div style={{ fontSize: 10, color: '#888', marginBottom: 2 }}>{title}</div>
-      <div style={{ display: 'flex', gap: 3 }}>{children}</div>
+    <div className="mb-1.5">
+      <div className="text-[10px] text-gray-400 mb-0.5">{title}</div>
+      <div className="flex gap-1">{children}</div>
     </div>
   );
 }
 
 function Btn({ label, onClick, full, active }: {
-  label: string; onClick: () => void; full?: boolean; active?: boolean;
+  label: React.ReactNode; onClick: () => void; full?: boolean; active?: boolean;
 }) {
   return (
-    <button onClick={onClick} style={{
-      flex: full ? 1 : undefined, padding: '3px 6px', fontSize: 10,
-      background: active ? '#4ecdc4' : 'rgba(255,255,255,0.08)', color: active ? '#000' : '#fff',
-      border: '1px solid rgba(255,255,255,0.15)', borderRadius: 3, cursor: 'pointer',
-      ...(full ? { width: '100%' } : {})
-    }}>{label}</button>
+    <button onClick={onClick} className={`flex items-center justify-center gap-1 px-1.5 py-1 text-[10px] rounded-[3px] border cursor-pointer transition-colors ${
+      active 
+        ? 'bg-emerald-400 text-black border-transparent font-medium' 
+        : 'bg-white/10 text-white border-white/15 hover:bg-white/20'
+    } ${full ? 'flex-1 w-full' : ''}`}>
+      {label}
+    </button>
   );
 }
-
-const panelStyle: React.CSSProperties = {
-  position: 'absolute', right: 8, top: 8, zIndex: 50,
-  background: 'rgba(0,0,0,0.8)', padding: 10, borderRadius: 6,
-  border: '1px solid rgba(255,255,255,0.1)', color: '#fff',
-  width: 180, backdropFilter: 'blur(10px)', fontFamily: 'Inter, sans-serif',
-};
