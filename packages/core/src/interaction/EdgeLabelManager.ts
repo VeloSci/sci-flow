@@ -2,7 +2,7 @@ import { StateManager } from '../state/StateManager';
 
 /** Manages labels and inline UI elements mounted at edge midpoints. */
 export class EdgeLabelManager {
-    private labelElements = new Map<string, HTMLDivElement>();
+    private labelElements = new Map<string, SVGForeignObjectElement>();
 
     constructor(
         private container: HTMLElement,
@@ -57,6 +57,9 @@ export class EdgeLabelManager {
         const state = this.stateManager.getState();
         const activeIds = new Set<string>();
 
+        const labelsGroup = this.container.querySelector('.sci-flow-labels');
+        if (!labelsGroup) return; // Wait for SVGRenderer to create it
+
         state.edges.forEach((edge) => {
             if (!edge.data?.label) return;
             activeIds.add(edge.id);
@@ -64,30 +67,31 @@ export class EdgeLabelManager {
             const midpoint = this.getPathMidpoint(edge.id);
             if (!midpoint) return;
 
-            // Convert flow coords → screen coords via viewport transform
-            const { viewport } = state;
-            const sx = midpoint.x * viewport.zoom + viewport.x;
-            const sy = midpoint.y * viewport.zoom + viewport.y;
+            let foreignObj = this.labelElements.get(edge.id);
+            if (!foreignObj || !labelsGroup.contains(foreignObj)) {
+                if (foreignObj) foreignObj.remove();
 
-            let el = this.labelElements.get(edge.id);
-            if (!el) {
-                el = document.createElement('div');
-                el.className = 'sci-flow-edge-label';
-                el.style.cssText = `
-                    position:absolute; pointer-events:auto; z-index:500;
-                    transform:translate(-50%,-50%);
-                    background:var(--sf-node-bg,#2a2a2a); color:var(--sf-node-text,#fff);
-                    padding:2px 8px; border-radius:4px; font-size:11px;
-                    border:1px solid var(--sf-node-border,#444);
-                    white-space:nowrap;
-                `;
-                this.container.appendChild(el);
-                this.labelElements.set(edge.id, el);
+                foreignObj = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
+                // Set fixed width/height so it can hold the label, use overflow visible
+                foreignObj.setAttribute('width', '1');
+                foreignObj.setAttribute('height', '1');
+                foreignObj.style.overflow = 'visible';
+
+                const div = document.createElement('div');
+                div.className = 'sci-flow-edge-label';
+                // Remove inline styling, it is handled by CSS correctly now!
+                foreignObj.appendChild(div);
+                
+                labelsGroup.appendChild(foreignObj);
+                this.labelElements.set(edge.id, foreignObj);
             }
 
-            el.textContent = String(edge.data.label);
-            el.style.left = `${sx}px`;
-            el.style.top = `${sy}px`;
+            // Position <foreignObject> directly at flow coordinates
+            foreignObj.setAttribute('x', String(midpoint.x));
+            foreignObj.setAttribute('y', String(midpoint.y));
+
+            const div = foreignObj.firstChild as HTMLDivElement;
+            div.textContent = String(edge.data.label);
         });
 
         // Remove labels for deleted edges

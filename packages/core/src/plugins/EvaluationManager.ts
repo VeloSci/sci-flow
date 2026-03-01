@@ -47,10 +47,23 @@ export class EvaluationManager {
                     outputs = result as JsonMap;
                 }
             } else {
-                // Pass-through: copy inputs to matching output names
-                Object.keys(node.outputs).forEach(outId => {
-                    if (outId in inputs) outputs[outId] = inputs[outId];
-                });
+                // Pass-through: copy inputs to outputs intelligently
+                const inKeys = Object.keys(inputs);
+                const outKeys = Object.keys(node.outputs);
+                
+                if (inKeys.length === 1 && outKeys.length === 1) {
+                    // Single input -> Single output
+                    outputs[outKeys[0]] = inputs[inKeys[0]];
+                } else {
+                    // Match by name or index
+                    outKeys.forEach((outId, idx) => {
+                        if (outId in inputs) {
+                            outputs[outId] = inputs[outId];
+                        } else if (inKeys[idx] !== undefined) {
+                            outputs[outId] = inputs[inKeys[idx]];
+                        }
+                    });
+                }
             }
 
             nodeOutputs.set(nodeId, outputs);

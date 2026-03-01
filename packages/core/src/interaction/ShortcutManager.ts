@@ -2,46 +2,66 @@ import { StateManager } from '../state/StateManager';
 import { Node, Edge } from '../types';
 
 export class ShortcutManager {
-    constructor(private stateManager: StateManager) {}
+    constructor(private stateManager: StateManager, private plugins: import('../plugins/PluginHost').PluginHost | undefined) {}
 
     public handleKeyDown(e: KeyboardEvent): void {
         if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
         const state = this.stateManager.getState();
 
-        // Select All
-        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
-            e.preventDefault();
-            this.stateManager.setSelection(Array.from(state.nodes.keys()), []);
-            return;
+        // Use ShortcutCustomizer if available
+        const customizer = this.plugins?.shortcuts;
+        if (customizer) {
+            const action = customizer.match(e);
+            if (action) {
+                e.preventDefault();
+                switch (action) {
+                    case 'selectAll':
+                        this.stateManager.setSelection(Array.from(state.nodes.keys()), []);
+                        break;
+                    case 'delete': {
+                        const selectedNodes = Array.from(state.nodes.values()).filter(n => n.selected).map(n => n.id);
+                        const selectedEdges = Array.from(state.edges.values()).filter(e => e.selected).map(e => e.id);
+                        selectedNodes.forEach(id => this.stateManager.removeNode(id));
+                        selectedEdges.forEach(id => this.stateManager.removeEdge(id));
+                        break;
+                    }
+                    case 'undo':
+                        this.stateManager.undo();
+                        break;
+                    case 'redo':
+                        this.stateManager.redo();
+                        break;
+                    case 'fitView':
+                        this.plugins?.shortcuts.execute('fitView');
+                        break;
+                    case 'nudgeUp':
+                    case 'nudgeDown':
+                    case 'nudgeLeft':
+                    case 'nudgeRight': {
+                        const selectedNodes = Array.from(state.nodes.values()).filter(n => n.selected);
+                        if (selectedNodes.length > 0) {
+                            const step = e.shiftKey ? 10 : 1;
+                            selectedNodes.forEach(node => {
+                                let newX = node.position.x;
+                                let newY = node.position.y;
+                                if (action === 'nudgeUp') newY -= step;
+                                if (action === 'nudgeDown') newY += step;
+                                if (action === 'nudgeLeft') newX -= step;
+                                if (action === 'nudgeRight') newX += step;
+                                this.stateManager.updateNodePosition(node.id, newX, newY, true);
+                            });
+                            this.stateManager.commitNodePositions();
+                            this.stateManager.saveSnapshot();
+                        }
+                        break;
+                    }
+                }
+                return;
+            }
         }
 
-        // Delete
-        if (e.key === 'Delete' || e.key === 'Backspace') {
-            e.preventDefault();
-            const selectedNodes = Array.from(state.nodes.values()).filter(n => n.selected).map(n => n.id);
-            const selectedEdges = Array.from(state.edges.values()).filter(e => e.selected).map(e => e.id);
-            selectedNodes.forEach(id => this.stateManager.removeNode(id));
-            selectedEdges.forEach(id => this.stateManager.removeEdge(id));
-            return;
-        }
-
-        // Undo/Redo
-        const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-        const isRedo = (isMac && e.metaKey && e.shiftKey && e.code === 'KeyZ') || (!isMac && e.ctrlKey && e.code === 'KeyY');
-        const isUndo = (e.metaKey || e.ctrlKey) && e.code === 'KeyZ' && !isRedo;
-
-        if (isUndo) {
-            e.preventDefault();
-            this.stateManager.undo();
-            return;
-        } else if (isRedo) {
-            e.preventDefault();
-            this.stateManager.redo();
-            return;
-        }
-
-        // Arrow keys - nudge selected nodes
+        // Fallback for arrow keys if no customizer
         const arrowKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
         if (arrowKeys.includes(e.key)) {
             const selectedNodes = Array.from(state.nodes.values()).filter(n => n.selected);
