@@ -463,6 +463,7 @@ export default function App() {
             </SvgWrapper>
           </div>
 
+
           {/* 26. Cuadrado Rotatorio */}
           <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>

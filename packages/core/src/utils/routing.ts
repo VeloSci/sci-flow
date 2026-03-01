@@ -2,7 +2,7 @@ import { Position, Rect } from '../types';
 
 interface Point { x: number; y: number; }
 
-export function getSmartOrthogonalPath(source: Position, target: Position, obstacles: Rect[], padding = 20): string {
+export function getSmartOrthogonalPath(source: Position, target: Position, obstacles: Rect[], padding = 40): string {
     // 1. Define routing grid lines
     const xs = new Set<number>();
     const ys = new Set<number>();
@@ -14,10 +14,6 @@ export function getSmartOrthogonalPath(source: Position, target: Position, obsta
     
     xs.add(startX); xs.add(endX);
     ys.add(startY); ys.add(endY);
-
-    // Add mid-points to allow centered turns (Image 2 style)
-    xs.add(startX + (endX - startX) / 2);
-    ys.add(startY + (endY - startY) / 2);
 
     // Add source/target port "exit" points to encourage orthogonal start/end
     xs.add(startX + padding); xs.add(startX - padding);
@@ -80,11 +76,48 @@ export function getSmartOrthogonalPath(source: Position, target: Position, obsta
     const endXIdx = xGrid.indexOf(endX);
 
     const fallbackPath = (s: Position, t: Position) => {
-        const midX = s.x + (t.x - s.x) / 2;
-        return `M ${s.x},${s.y} L ${midX},${s.y} L ${midX},${t.y} L ${t.x},${t.y}`;
+        const exitX = s.x + padding;
+        const isBackwards = t.x <= exitX;
+        if (isBackwards) {
+            const midY = s.y + (t.y - s.y) / 2;
+            const targetPaddingX = t.x - padding;
+            return `M ${s.x},${s.y} L ${exitX},${s.y} L ${exitX},${midY} L ${targetPaddingX},${midY} L ${targetPaddingX},${t.y} L ${t.x},${t.y}`;
+        }
+        return `M ${s.x},${s.y} L ${exitX},${s.y} L ${exitX},${t.y} L ${t.x},${t.y}`;
     };
 
     if (startXIdx === -1 || startYIdx === -1 || endXIdx === -1 || endYIdx === -1) {
+        return fallbackPath(source, target);
+    }
+
+    // Early optimization: If the preferred flowchart fallback path is clear, use it!
+    const exitX = source.x + padding;
+    const isBackwards = target.x <= exitX;
+    let fallbackIsClear = true;
+    
+    if (isBackwards) {
+        const midY = source.y + (target.y - source.y) / 2;
+        const targetPaddingX = target.x - padding;
+        if (
+            isLineBlocked({x: source.x, y: source.y}, {x: exitX, y: source.y}) ||
+            isLineBlocked({x: exitX, y: source.y}, {x: exitX, y: midY}) ||
+            isLineBlocked({x: exitX, y: midY}, {x: targetPaddingX, y: midY}) ||
+            isLineBlocked({x: targetPaddingX, y: midY}, {x: targetPaddingX, y: target.y}) ||
+            isLineBlocked({x: targetPaddingX, y: target.y}, {x: target.x, y: target.y})
+        ) {
+            fallbackIsClear = false;
+        }
+    } else {
+        if (
+            isLineBlocked({x: source.x, y: source.y}, {x: exitX, y: source.y}) ||
+            isLineBlocked({x: exitX, y: source.y}, {x: exitX, y: target.y}) ||
+            isLineBlocked({x: exitX, y: target.y}, {x: target.x, y: target.y})
+        ) {
+            fallbackIsClear = false;
+        }
+    }
+
+    if (fallbackIsClear) {
         return fallbackPath(source, target);
     }
 
@@ -158,12 +191,38 @@ export function getSmartOrthogonalPath(source: Position, target: Position, obsta
             if (isLineBlocked(p1, p2)) continue;
 
             let penalty = 0;
+            const isHorizontal = neighbor.yi === yi;
+            const isVertical = !isHorizontal;
+
+            // 1. Turn penalty (strongly enforce orthogonal segments)
             if (cameFrom.has(current)) {
-               const prevIdx = cameFrom.get(current)!;
-               const prevCoords = getCoords(prevIdx);
-               const wasHorizontal = prevCoords.yi === yi;
-               const isHorizontal = neighbor.yi === yi;
-               if (wasHorizontal !== isHorizontal) penalty += 100; // Increased penalty for turning
+                const prevIdx = cameFrom.get(current)!;
+                const prevCoords = getCoords(prevIdx);
+                const wasHorizontal = prevCoords.yi === yi;
+                if (wasHorizontal !== isHorizontal) {
+                    // Check if turning at an intended bending point
+                    const isExitPadding = Math.abs(p1.x - (source.x + padding)) < 1;
+                    const isTargetPadding = Math.abs(p1.x - (target.x - padding)) < 1;
+                    
+                    if (isExitPadding) {
+                        penalty += 50; // Highest priority turn (exit column)
+                    } else if (isTargetPadding) {
+                        penalty += 150; // Second priority turn
+                    } else {
+                        penalty += 600; // Discouraged middle-of-nowhere turn
+                    }
+                }
+            }
+
+            // 2. "Exit Segment" Heuristic (Scientific Flow Priority)
+            // If we are at the source row level and haven't reached the horizontal exit padding yet,
+            // we strongly penalize moving vertically.
+            if (Math.abs(p1.y - source.y) < 2 && p1.x < source.x + padding - 1) {
+                if (isVertical) {
+                    penalty += 1000; // Block premature turns
+                } else if (isHorizontal && p2.x > p1.x) {
+                    penalty -= 20; // Slight incentive to move along the exit line
+                }
             }
 
             const dist = Math.abs(p2.x - p1.x) + Math.abs(p2.y - p1.y);
