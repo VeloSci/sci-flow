@@ -6,6 +6,20 @@
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
+  "author": "VeloSci",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VeloSci/sci-flow.git"
+  },
+  "keywords": [
+    "sci-flow",
+    "flowchart",
+    "node editor",
+    "scientific layout",
+    "webgl",
+    "canvas"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
