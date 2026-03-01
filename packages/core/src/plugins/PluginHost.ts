@@ -109,7 +109,7 @@ export class PluginHost {
         this.perfMonitor = new PerfMonitor(container);
         this.a11y = new A11yManager(container);
         this.edgeBundler = new EdgeBundler(stateManager);
-        this.stickyNotes = new StickyNoteManager();
+        this.stickyNotes = new StickyNoteManager(container, stateManager);
         this.pluginAPI = new PluginAPI();
         this.historyPersistence = new HistoryPersistence(historyManager);
     }
@@ -119,6 +119,7 @@ export class PluginHost {
         this.lod.update();
         this.edgeLabels.reconcile();
         this.toolbar.updatePosition();
+        this.stickyNotes.reconcile();
         this.annotations.reconcile(
             this.lod['stateManager']?.getState?.()?.viewport || { x: 0, y: 0, zoom: 1 }
         );
