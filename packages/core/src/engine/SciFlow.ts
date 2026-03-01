@@ -48,11 +48,15 @@ export class SciFlow {
       this.stateManager.setDirection(this.options.direction);
     }
 
+    // Initialize plugins before InteractionManager so they can be injected
+    this.plugins = new PluginHost(this.container, this.stateManager, this.stateManager.history, this.options.plugins);
+
     this.interactionManager = new InteractionManager({
       container: this.container,
       stateManager: this.stateManager,
       minZoom: this.options.minZoom,
-      maxZoom: this.options.maxZoom
+      maxZoom: this.options.maxZoom,
+      plugins: this.plugins // Add plugins here
     });
 
     this.gridRenderer = new GridRenderer({ container: this.container });
@@ -62,8 +66,8 @@ export class SciFlow {
     this.renderer = this.createRenderer(initialRendererType);
     this.renderer.stateManager = this.stateManager;
 
-    // Subscribe to state changes and trigger render
-    this.plugins = new PluginHost(this.container, this.stateManager, this.stateManager.history, this.options.plugins);
+    // Bind Shortcut Customizer Actions
+    this.plugins.shortcuts.onAction('fitView', () => { this.fitView(); });
 
     // Subscribe to state changes and trigger render
     this.unsubscribe = this.stateManager.subscribe((state: FlowState) => {

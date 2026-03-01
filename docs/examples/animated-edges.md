@@ -1,7 +1,6 @@
 <script setup>
 const animations = [
   'draw', 'draw-reverse', 'march', 'march-reverse', 'draw-erase', 'fade', 'thick-pulse', 'color-pulse', 'dots-flow', 'comet',
-  'glow', 'scale-center', 'scale-start', 'wavy-draw', 'zigzag-draw', 'fusion', 'wipe', 'data-packet', 'ping-pong', 'swarm',
   'arrow-travel', 'arrow-flow', 'arrow-bounce', 'spin-square', 'morph-slide', 'sine-orbit', 'spin-x', 'radar', 'draw-arrow', 'direction-pulse'
 ];
 
@@ -16,17 +15,17 @@ animations.forEach((anim, i) => {
 
   showcaseNodes.push({
     id: `src_${i}`,
-    type: 'default',
+    type: anim,
     position: { x: 50 + xOffset, y: yOffset },
-    data: { label: anim },
+    data: { label: anim, title: anim, subtitle: anim, description: anim },
     outputs: { out: { label: ' ' } }
   });
 
   showcaseNodes.push({
     id: `dst_${i}`,
-    type: 'default',
+    type: anim,
     position: { x: 300 + xOffset, y: yOffset },
-    data: { label: ' ' },
+    data: { label: anim, title: anim, subtitle: anim, description: anim },
     inputs: { in: { label: ' ' } }
   });
 
@@ -61,49 +60,48 @@ Scientific pipelines often require visual emphasis on certain data flows. `sci-f
 
 | Name | Description |
 |------|-------------|
-| `draw` | Line draws from source to target |
-| `draw-reverse` | Line draws from target to source |
-| `march` | Marching dashes (ants pattern) |
-| `march-reverse` | Reverse marching dashes |
-| `draw-erase` | Draw then erase |
-| `dots-flow` | Round dots flowing along the edge |
-| `comet` | Long segment sweeping across |
-| `scale-center` | Grows from center |
-| `scale-start` | Grows from start |
-| `fusion` | Draws from center outward |
+| `draw-arrow` | Line draws + arrow follows (`draw-arrow`) |
+| `direction-pulse` | March + fading center arrow (`direction-pulse`) |
+| `draw` | Line draws from source to target (`draw`) |
+| `draw-reverse` | Line draws from target to source (`draw-reverse`) |
+| `march` | Marching dashes (ants pattern) (`march`) |
+| `march-reverse` | Reverse marching dashes (`march-reverse`) |
+| `draw-erase` | Draw then erase (`draw-erase`) |
+| `dots-flow` | Round dots flowing along the edge (`dots-flow`) |
+| `comet` | Long segment sweeping across (`comet`) |
+| `scale-center` | Grows from center (`scale-center`) |
+| `scale-start` | Grows from start (`scale-start`) |
+| `fusion` | Draws from center outward (`fusion`) |
 
 ### Category 2: CSS Effect Animations
 
 | Name | Description |
 |------|-------------|
-| `fade` | Opacity pulse |
-| `thick-pulse` | Stroke width pulse |
-| `color-pulse` | Stroke color transition |
-| `glow` | Neon drop-shadow pulse |
-| `wipe` | Clip-path reveal |
+| `fade` | Opacity pulse (`fade`) |
+| `thick-pulse` | Stroke width pulse (`thick-pulse`) |
+| `color-pulse` | Stroke color transition (`color-pulse`) |
+| `glow` | Neon drop-shadow pulse (`glow`) |
+| `wipe` | Clip-path reveal (`wipe`) |
 
 ### Category 3: Traveling Object Animations
 
 | Name | Description |
 |------|-------------|
-| `data-packet` | Single dot traveling along the edge |
-| `ping-pong` | Dot bouncing between source and target |
-| `swarm` | Multiple colored dots |
-| `arrow-travel` | Single arrow traveling |
-| `arrow-flow` | Multiple arrows in formation |
-| `arrow-bounce` | Arrow bouncing back and forth |
-| `spin-square` | Spinning square traveling |
-| `morph-slide` | Morphing rectangle |
-| `sine-orbit` | Dot with wave oscillation |
-| `spin-x` | Spinning X mark |
-| `radar` | Dot with expanding ring |
+| `data-packet` | Single dot traveling along the edge (`data-packet`) |
+| `ping-pong` | Dot bouncing between source and target (`ping-pong`) |
+| `swarm` | Multiple colored dots (`swarm`) |
+| `arrow-travel` | Single arrow traveling (`arrow-travel`) |
+| `arrow-flow` | Multiple arrows in formation (`arrow-flow`) |
+| `arrow-bounce` | Arrow bouncing back and forth (`arrow-bounce`) |
+| `spin-square` | Spinning square traveling (`spin-square`) |
+| `morph-slide` | Morphing rectangle (`morph-slide`) |
+| `sine-orbit` | Dot with wave oscillation (`sine-orbit`) |
+| `spin-x` | Spinning X mark (`spin-x`) |
+| `radar` | Dot with expanding ring (`radar`) |
 
 ### Category 4: Compound Animations
 
-| Name | Description |
-|------|-------------|
-| `draw-arrow` | Line draws + arrow follows |
-| `direction-pulse` | March + fading center arrow |
+| `draw-arrow` | Line draws + arrow follows (`draw-arrow`) |
 
 ## How it works
 
