@@ -115,15 +115,14 @@ export const SVG_RENDERER_STYLES = `
   .sci-flow-port {
     cursor: crosshair;
     z-index: 20;
+    pointer-events: all; /* Required so SVG elements intercept elementsFromPoint */
     fill: var(--sf-port-bg);
     stroke: var(--sf-node-bg);
     stroke-width: 1.5px;
     transition: transform 0.15s ease, fill 0.2s ease, filter 0.2s ease, r 0.2s ease;
     transform-box: fill-box;
     transform-origin: center;
-    /* Ensure ports are always on top of edges */
     position: relative;
-    /* Add a subtle glow to make ports more visible */
     filter: drop-shadow(0 0 2px rgba(0,0,0,0.8));
   }
 
