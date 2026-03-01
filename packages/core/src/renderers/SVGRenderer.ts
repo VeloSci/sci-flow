@@ -14,6 +14,7 @@ export class SVGRenderer extends BaseRenderer {
   private svg: SVGSVGElement;
   private nodesGroup: SVGGElement;
   private edgesGroup: SVGGElement;
+  private labelsGroup: SVGGElement;
   private styleEl: HTMLStyleElement;
   private routerWorker: Worker;
   private pendingRoutes: Map<string, (path: string) => void> = new Map();
@@ -45,22 +46,29 @@ export class SVGRenderer extends BaseRenderer {
     this.svg.style.position = 'absolute';
     this.svg.style.top = '0';
     this.svg.style.left = '0';
-    this.svg.style.zIndex = '1';
+    this.svg.style.zIndex = 'var(--sf-z-edges, 10)';
     this.svg.setAttribute('class', 'sci-flow-svg sci-flow-svg-renderer');
 
     this.styleEl = document.createElement('style');
     this.styleEl.textContent = SVG_RENDERER_STYLES + TOUCH_RESPONSIVE_STYLES;
     document.head.appendChild(this.styleEl);
 
+    this.svg.appendChild(this.styleEl); // Use appendChild for style as well
+
     this.edgesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     this.edgesGroup.setAttribute('class', 'sci-flow-edges');
     this.edgesGroup.style.transformOrigin = '0 0';
+
+    this.labelsGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    this.labelsGroup.setAttribute('class', 'sci-flow-labels');
+    this.labelsGroup.style.transformOrigin = '0 0';
 
     this.nodesGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     this.nodesGroup.setAttribute('class', 'sci-flow-nodes');
     this.nodesGroup.style.transformOrigin = '0 0';
 
     this.svg.appendChild(this.edgesGroup);
+    this.svg.appendChild(this.labelsGroup);
     this.svg.appendChild(this.nodesGroup);
     this.container.appendChild(this.svg);
 
@@ -85,6 +93,7 @@ export class SVGRenderer extends BaseRenderer {
   public render(state: FlowState, registry: Map<string, NodeDefinition>): void {
     const transform = `translate(${state.viewport.x}, ${state.viewport.y}) scale(${state.viewport.zoom})`;
     this.edgesGroup.setAttribute('transform', transform);
+    this.labelsGroup.setAttribute('transform', transform);
     this.nodesGroup.setAttribute('transform', transform);
 
     const existingNodeDocs = new Set(Array.from(this.nodesGroup.children).map(n => n.id));

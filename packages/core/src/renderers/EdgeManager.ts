@@ -32,7 +32,7 @@ export class EdgeManager {
             const sourcePos = this.getPortAnchorFn(sourceNode, edge.sourceHandle);
             const targetPos = this.getPortAnchorFn(targetNode, edge.targetHandle);
 
-            const routingMode = edge.type || 'bezier';
+            const routingMode = edge.type || state.defaultEdgeType || 'bezier';
             let group = document.getElementById(`edge-group-${edge.id}`) as SVGGElement | null;
 
             if (!group) {
@@ -261,7 +261,8 @@ export class EdgeManager {
         }
 
         // ─── PATH COMPUTATION ───
-        const routeHash = `${sourcePos.x},${sourcePos.y}|${targetPos.x},${targetPos.y}|${routingMode}|${obstacles.length}`;
+        const obsHash = obstacles.map(o => `${o.id}:${Math.round(o.x)},${Math.round(o.y)},${Math.round(o.width)},${Math.round(o.height)}`).sort().join('|');
+        const routeHash = `${sourcePos.x},${sourcePos.y}|${targetPos.x},${targetPos.y}|${routingMode}|${obsHash}`;
 
         const setPaths = (p: string) => {
             bgPath.setAttribute('d', p);

@@ -57,6 +57,27 @@ export class NodeManager {
 
             existingNodeDocs.delete(`node-${node.id}`);
         });
+
+        // Reorder DOM to bring selected nodes to the front (highest z-index)
+        // while preserving the original insertion order for unselected nodes.
+        const unselectedGroups: SVGGElement[] = [];
+        const selectedGroups: SVGGElement[] = [];
+
+        nodes.forEach(node => {
+            const g = document.getElementById(`node-${node.id}`) as SVGGElement | null;
+            if (g) {
+                if (node.selected) selectedGroups.push(g);
+                else unselectedGroups.push(g);
+            }
+        });
+
+        const orderedGroups = [...unselectedGroups, ...selectedGroups];
+        orderedGroups.forEach((g, index) => {
+            const currentAtPos = this.nodesGroup.children[index];
+            if (currentAtPos !== g) {
+                this.nodesGroup.insertBefore(g, currentAtPos || null);
+            }
+        });
     }
 
     private createNodeElement(
@@ -175,6 +196,7 @@ export class NodeManager {
         });
 
         let rafId: number;
+        let isFirstResize = true;
         const ro = new ResizeObserver(() => {
             if (rafId) cancelAnimationFrame(rafId);
             rafId = requestAnimationFrame(() => {
@@ -187,10 +209,17 @@ export class NodeManager {
 
                 // Sync state if dimensions changed
                 const stateNode = stateManager?.getState().nodes.get(node.id);
+                // Also trigger an update if it's the first resize so edges connect perfectly to the updated SVG layout
                 const sizeChanged = stateNode && (Math.abs((stateNode.style?.width || 0) - w) > 1 || Math.abs((stateNode.style?.height || 0) - h) > 1);
 
+                let needsUpdate = false;
                 if (sizeChanged) {
                     stateNode.style = { ...stateNode.style, width: w, height: h };
+                    needsUpdate = true;
+                }
+                if (isFirstResize) {
+                    needsUpdate = true;
+                    isFirstResize = false;
                 }
 
                 if (isVertical) {
@@ -259,9 +288,9 @@ export class NodeManager {
 
                 // Notify state manager ONLY after DOM is updated and correct
                 const isFirstLayout = !wrapper.dataset.layoutSettled;
-                if (isFirstLayout || sizeChanged) {
+                if ((isFirstLayout || sizeChanged || needsUpdate) && stateManager) {
                     wrapper.dataset.layoutSettled = 'true';
-                    stateManager?.forceUpdate();
+                    stateManager.forceUpdate();
                 }
             });
         });
