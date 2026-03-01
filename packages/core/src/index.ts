@@ -22,6 +22,7 @@ export * from './plugins/Minimap';
 export * from './renderers/BaseRenderer';
 export * from './renderers/SVGRenderer';
 export * from './renderers/CanvasRenderer';
+export * from './renderers/EdgeAnimations';
 
 // --- Interaction Managers ---
 export { TouchManager } from './interaction/TouchManager';

@@ -20,45 +20,68 @@ export class CollisionManager {
 
         const dw = dragged.style?.width || 200;
         const dh = dragged.style?.height || 150;
-        const gap = 8;
+        const gap = 12; // Slightly larger gap for scientific look
+
+        // In block mode, we check if any static node would be hit
+        if (this.mode === 'block') {
+            for (const [id, node] of state.nodes.entries()) {
+                if (id === nodeId) continue;
+                const nw = node.style?.width || 200;
+                const nh = node.style?.height || 150;
+
+                if (newPos.x < node.position.x + nw + gap &&
+                    newPos.x + dw + gap > node.position.x &&
+                    newPos.y < node.position.y + nh + gap &&
+                    newPos.y + dh + gap > node.position.y) {
+                    return dragged.position; // Return original if blocked
+                }
+            }
+            return newPos;
+        }
+
+        // Push mode: recurse to solve chain reactions
+        const visited = new Set<string>([nodeId]);
+        this.resolvePush(newPos, dw, dh, gap, visited);
+        return newPos;
+    }
+
+    private resolvePush(pos: Position, w: number, h: number, gap: number, visited: Set<string>) {
+        const state = this.stateManager.getState();
 
         for (const [id, node] of state.nodes.entries()) {
-            if (id === nodeId) continue;
+            if (visited.has(id)) continue;
+
             const nw = node.style?.width || 200;
             const nh = node.style?.height || 150;
 
-            // Check overlap
-            if (newPos.x < node.position.x + nw + gap &&
-                newPos.x + dw + gap > node.position.x &&
-                newPos.y < node.position.y + nh + gap &&
-                newPos.y + dh + gap > node.position.y) {
+            if (pos.x < node.position.x + nw + gap &&
+                pos.x + w + gap > node.position.x &&
+                pos.y < node.position.y + nh + gap &&
+                pos.y + h + gap > node.position.y) {
 
-                if (this.mode === 'block') {
-                    return dragged.position; // Don't move at all
-                }
+                // Collided! Calculate push vector
+                const overlapX = this.getOverlap(pos.x, w, node.position.x, nw, gap);
+                const overlapY = this.getOverlap(pos.y, h, node.position.y, nh, gap);
 
-                // Push mode: nudge the colliding node away
-                const overlapX = this.getOverlap(
-                    newPos.x, dw, node.position.x, nw, gap
-                );
-                const overlapY = this.getOverlap(
-                    newPos.y, dh, node.position.y, nh, gap
-                );
+                let pushX = 0;
+                let pushY = 0;
 
-                // Push in the direction of smaller overlap
                 if (Math.abs(overlapX) < Math.abs(overlapY)) {
-                    this.stateManager.updateNodePosition(
-                        id, node.position.x + overlapX, node.position.y, true
-                    );
+                    pushX = overlapX;
                 } else {
-                    this.stateManager.updateNodePosition(
-                        id, node.position.x, node.position.y + overlapY, true
-                    );
+                    pushY = overlapY;
                 }
+
+                const nextPos = { x: node.position.x + pushX, y: node.position.y + pushY };
+                visited.add(id);
+                
+                // Recursively push
+                this.resolvePush(nextPos, nw, nh, gap, visited);
+                
+                // Finally update state
+                this.stateManager.updateNodePosition(id, nextPos.x, nextPos.y, true);
             }
         }
-
-        return newPos;
     }
 
     private getOverlap(
