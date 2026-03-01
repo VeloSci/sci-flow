@@ -6,8 +6,8 @@ export interface MathNodeProps {
     engine: SciFlow | null;
 }
 
-export const MathNodeEx = ({ node, engine }: MathNodeProps) => {
-    const updateData = (newData: Record<string, unknown>) => {
+export const MathNodeEx: React.FC<MathNodeProps> & { nodeType?: string } = ({ node, engine }) => {
+    const updateData = (newData: Partial<{ a: number; b: number }>) => {
         if (!engine) return;
         const state = engine.stateManager.getState();
         const n = state.nodes.get(node.id);
@@ -54,4 +54,4 @@ export const MathNodeEx = ({ node, engine }: MathNodeProps) => {
     );
 };
 
-(MathNodeEx as any).nodeType = 'math-node';
+MathNodeEx.nodeType = 'math-node';

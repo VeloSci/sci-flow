@@ -1,15 +1,23 @@
 import React from 'react';
+import type { Node, SciFlow } from '@sci-flow/core';
 
-export const MathNode = ({ node, engine }: any) => {
-    const updateData = (newData: any) => {
+export interface MathNodeProps {
+    node: Node;
+    engine: SciFlow | null;
+}
+
+export const MathNode: React.FC<MathNodeProps> & { nodeType?: string } = ({ node, engine }) => {
+    const updateData = (newData: Partial<{ a: number; b: number }>) => {
         if (!engine) return;
-        const state = (engine as any).stateManager.getState();
+        const state = engine.stateManager.getState();
         const n = state.nodes.get(node.id);
         if (n) {
             n.data = { ...n.data, ...newData };
-            (engine as any).stateManager.forceUpdate();
+            engine.stateManager.forceUpdate();
         }
     };
+
+    const data = (node.data || {}) as { a?: number; b?: number };
 
     const inputStyle: React.CSSProperties = {
         width: '40px',
@@ -27,24 +35,24 @@ export const MathNode = ({ node, engine }: any) => {
             <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', alignItems: 'center', justifyContent: 'center' }}>
                 <input 
                     type="number" 
-                    value={node.data.a || 0} 
+                    value={data.a || 0} 
                     onChange={(e) => updateData({ a: parseFloat(e.target.value) })}
                     style={inputStyle}
                 />
                 <span style={{ color: '#888' }}>+</span>
                 <input 
                     type="number" 
-                    value={node.data.b || 0} 
+                    value={data.b || 0} 
                     onChange={(e) => updateData({ b: parseFloat(e.target.value) })}
                     style={inputStyle}
                 />
             </div>
             <div style={{ background: '#1a1a1a', padding: '8px', borderRadius: '4px', textAlign: 'center', fontSize: '14px', fontWeight: 'bold', color: 'var(--sf-edge-active)' }}>
-                Result: {(node.data.a || 0) + (node.data.b || 0)}
+                Result: {(data.a || 0) + (data.b || 0)}
             </div>
         </div>
     );
 };
 
 // Static bind for the wrapper mapping
-(MathNode as any).nodeType = 'math-node';
+MathNode.nodeType = 'math-node';

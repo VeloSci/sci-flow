@@ -1,26 +1,27 @@
 import React from 'react';
+import { Zap, Settings2, Link as LinkIcon, BarChart2, Blocks, PackagePlus } from 'lucide-react';
 
 interface PaletteItem {
   type: string;
   title: string;
   color: string;
-  icon: string;
+  icon: React.ReactNode;
   inputs: Record<string, { dataType: 'number' | 'string' | 'boolean' | 'any'; label: string }>;
   outputs: Record<string, { dataType: 'number' | 'string' | 'boolean' | 'any'; label: string }>;
 }
 
 const PALETTE_ITEMS: PaletteItem[] = [
-  { type: 'generator', title: 'Source', color: '#4ecdc4', icon: '⚡',
+  { type: 'generator', title: 'Source', color: '#4ecdc4', icon: <Zap size={14}/>,
     inputs: {}, outputs: { out1: { dataType: 'number', label: 'Value' } } },
-  { type: 'processor', title: 'Transform', color: '#ff6b6b', icon: '⚙️',
+  { type: 'processor', title: 'Transform', color: '#ff6b6b', icon: <Settings2 size={14}/>,
     inputs: { in1: { dataType: 'number', label: 'Input' } },
     outputs: { out1: { dataType: 'number', label: 'Output' } } },
-  { type: 'combiner', title: 'Merge', color: '#ffd93d', icon: '🔗',
+  { type: 'combiner', title: 'Merge', color: '#ffd93d', icon: <LinkIcon size={14}/>,
     inputs: { in1: { dataType: 'any', label: 'A' }, in2: { dataType: 'any', label: 'B' } },
     outputs: { out1: { dataType: 'any', label: 'Result' } } },
-  { type: 'viewer', title: 'Display', color: '#6c5ce7', icon: '📊',
+  { type: 'viewer', title: 'Display', color: '#6c5ce7', icon: <BarChart2 size={14}/>,
     inputs: { in1: { dataType: 'any', label: 'Data' } }, outputs: {} },
-  { type: 'multi', title: 'Advanced', color: '#00b894', icon: '🧩',
+  { type: 'multi', title: 'Advanced', color: '#00b894', icon: <Blocks size={14}/>,
     inputs: { in1: { dataType: 'number', label: 'X' }, in2: { dataType: 'string', label: 'Y' } },
     outputs: { out1: { dataType: 'any', label: 'Result' }, out2: { dataType: 'boolean', label: 'Valid' } } },
 ];
@@ -35,33 +36,21 @@ export function NodePaletteDoc() {
   };
 
   return (
-    <div style={panelStyle}>
-      <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>📦 Drag to Canvas</div>
+    <div className="absolute left-2 top-2 z-[50] bg-black/80 p-2.5 rounded-md border border-white/10 text-white w-[170px] backdrop-blur-md font-sans">
+      <div className="text-xs font-semibold mb-1.5 flex items-center gap-1.5"><PackagePlus size={14} className="text-emerald-400" /> Drag to Canvas</div>
       {PALETTE_ITEMS.map(item => (
         <div
           key={item.type}
           draggable
           onDragStart={handleDragStart(item)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '5px 8px', borderRadius: 5,
-            background: 'rgba(255,255,255,0.04)',
-            border: `1px solid ${item.color}33`,
-            cursor: 'grab', fontSize: 11, marginBottom: 3,
-          }}
+          className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-white/5 border cursor-grab text-[11px] mb-1 hover:bg-white/10 transition-colors"
+          style={{ borderColor: `${item.color}33` }}
         >
-          <span>{item.icon}</span>
+          <span className="flex items-center justify-center text-current opacity-80">{item.icon}</span>
           <span>{item.title}</span>
-          <span style={{ marginLeft: 'auto', color: item.color, fontSize: 9 }}>{item.type}</span>
+          <span className="ml-auto text-[9px]" style={{ color: item.color }}>{item.type}</span>
         </div>
       ))}
     </div>
   );
 }
-
-const panelStyle: React.CSSProperties = {
-  position: 'absolute', left: 8, top: 8, zIndex: 50,
-  background: 'rgba(0,0,0,0.8)', padding: 10, borderRadius: 6,
-  border: '1px solid rgba(255,255,255,0.1)', color: '#fff',
-  width: 170, backdropFilter: 'blur(10px)', fontFamily: 'Inter, sans-serif',
-};
