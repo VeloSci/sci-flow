@@ -22,7 +22,7 @@ const props = defineProps<{
     nodeTypes?: Record<string, Component>;
 }>();
 
-const { containerRef, portalMounts, nodes, engine } = useSciFlow({
+const { containerRef, portalMounts, nodes, engine, highlightedConnection } = useSciFlow({
     initialNodes: props.initialNodes,
     initialEdges: props.initialEdges,
     renderer: props.renderer,
@@ -63,7 +63,7 @@ defineExpose({ engine });
     <!-- Teleport Vue Components into Vanilla DOM nodes (only when custom node type exists) -->
     <template v-for="mount in mountsArray" :key="mount.nodeId">
       <Teleport :to="mount.domElement">
-        <component :is="mount.component" :node="mount.nodeData" />
+        <component :is="mount.component" :node="mount.nodeData" :engine="engine" :highlighted-connection="highlightedConnection" />
       </Teleport>
     </template>
 

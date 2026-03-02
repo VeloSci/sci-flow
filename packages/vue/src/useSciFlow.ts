@@ -1,6 +1,6 @@
 import { ref, onMounted, onBeforeUnmount, shallowRef, watch } from 'vue';
 import type { ShallowRef } from 'vue';
-import { SciFlow, type SciFlowOptions, type Node, type Edge } from '@sci-flow/core';
+import { SciFlow, type SciFlowOptions, type Node, type Edge, type FlowState } from '@sci-flow/core';
 
 export interface UseSciFlowProps extends Omit<SciFlowOptions, 'container'> {
   initialNodes?: Node[];
@@ -17,6 +17,7 @@ export function useSciFlow(options: UseSciFlowProps = {}) {
 
   const nodes = ref<Node[]>(options.initialNodes || []);
   const edges = ref<Edge[]>(options.initialEdges || []);
+  const highlightedConnection = ref<FlowState['highlightedConnection']>();
   const portalMounts = ref<Map<string, HTMLElement>>(new Map());
 
   onMounted(() => {
@@ -36,6 +37,10 @@ export function useSciFlow(options: UseSciFlowProps = {}) {
     if (stateManager) {
       stateManager.onNodesChange = (newNodes: Node[]) => { nodes.value = newNodes; };
       stateManager.onEdgesChange = (newEdges: Edge[]) => { edges.value = newEdges; };
+
+      stateManager.subscribe((state) => {
+        highlightedConnection.value = state.highlightedConnection;
+      });
 
       stateManager.onNodeMount = (nodeId: string, container: HTMLElement) => {
         portalMounts.value.set(nodeId, container);
@@ -97,6 +102,7 @@ export function useSciFlow(options: UseSciFlowProps = {}) {
     engine: engineRef,
     nodes,
     edges,
+    highlightedConnection,
     portalMounts,
     setNodes,
     setEdges,
