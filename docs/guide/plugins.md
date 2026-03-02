@@ -124,3 +124,19 @@ e.dataTransfer.setData('application/sci-flow-node', JSON.stringify({
   outputs: { out1: { dataType: 'number', label: 'Output' } }
 }));
 ```
+
+### Sticky Notes
+
+Floating annotations on the canvas:
+
+```typescript
+// Add a note
+const note = engine.plugins.stickyNotes.add('Plan: Refactor Engine', 100, 100, '#ffb74d');
+
+// Support for RGBA and Transparency
+engine.plugins.stickyNotes.update(note.id, { color: 'rgba(255, 255, 255, 0.5)' });
+engine.plugins.stickyNotes.update(note.id, { color: 'transparent' }); // Fully invisible background
+
+// List all notes
+const allNotes = engine.plugins.stickyNotes.getAll();
+```

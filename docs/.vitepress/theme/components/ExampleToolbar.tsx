@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { SciFlow, Edge } from '@sci-flow/core';
-import { Plus, Maximize, GitMerge, FileDown, FileUp, Sun, Moon } from 'lucide-react';
+import { Plus, StickyNote, Maximize, GitMerge, FileDown, FileUp, Sun, Moon } from 'lucide-react';
 import { EdgeAnimationSelector } from './EdgeAnimationSelector';
 
 /** Extracted toolbar for the FullExampleApp — routing, animation, line style, file ops. */
@@ -68,12 +68,12 @@ export function ExampleToolbar({ engine, themeMode, setThemeMode, direction, tog
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const inputs: Record<string, any> = {};
     for (let i = 0; i < proto.in; i++) {
-      inputs[`in${i+1}`] = { id: `in${i+1}`, label: proto.inLabels?.[i] || `in${i+1}`, type: 'input', dataType: proto.inTypes?.[i] || 'any' };
+      inputs[`in${i + 1}`] = { id: `in${i + 1}`, label: proto.inLabels?.[i] || `in${i + 1}`, type: 'input', dataType: proto.inTypes?.[i] || 'any' };
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const outputs: Record<string, any> = {};
     for (let i = 0; i < proto.out; i++) {
-      outputs[`out${i+1}`] = { id: `out${i+1}`, label: proto.outLabels?.[i] || `out${i+1}`, type: 'output', dataType: proto.outTypes?.[i] || 'any' };
+      outputs[`out${i + 1}`] = { id: `out${i + 1}`, label: proto.outLabels?.[i] || `out${i + 1}`, type: 'output', dataType: proto.outTypes?.[i] || 'any' };
     }
     engine.addNode({
       id: `node-${Date.now()}`, type: proto.type,
@@ -81,6 +81,14 @@ export function ExampleToolbar({ engine, themeMode, setThemeMode, direction, tog
       data: { title: proto.title }, inputs, outputs,
       style: { width: 160, height: 100 + Math.max(proto.in, proto.out) * 20 }
     });
+  };
+
+  const handleAddNote = () => {
+    if (!engine) return;
+    const state = engine.getState();
+    const cx = (-state.viewport.x + 400) / state.viewport.zoom;
+    const cy = (-state.viewport.y + 100) / state.viewport.zoom;
+    engine.plugins.stickyNotes.add('New Sticky Note', cx, cy);
   };
 
   const handleDownload = () => {
@@ -111,8 +119,9 @@ export function ExampleToolbar({ engine, themeMode, setThemeMode, direction, tog
 
   return (
     <div className="relative z-[100] flex items-center gap-2 px-3 py-2 bg-black/40 backdrop-blur-md border-b border-white/10 flex-wrap">
-      <button onClick={handleAddNode} className={accBtnClasses}><Plus size={14}/> Add Node</button>
-      <button onClick={() => engine?.fitView()} className={btnClasses}><Maximize size={14}/> Fit</button>
+      <button onClick={handleAddNode} className={accBtnClasses} title="Add Node"><Plus size={14} /> Node</button>
+      <button onClick={handleAddNote} className={accBtnClasses.replace('emerald', 'amber')} title="Add Sticky Note"><StickyNote size={14} /> Note</button>
+      <button onClick={() => engine?.fitView()} className={btnClasses}><Maximize size={14} /> Fit</button>
       <button onClick={toggleDirection} className={btnClasses}>
         <GitMerge size={14} className={direction === 'horizontal' ? 'rotate-90' : ''} />
         {direction === 'horizontal' ? 'Vert' : 'Horiz'}
@@ -132,10 +141,10 @@ export function ExampleToolbar({ engine, themeMode, setThemeMode, direction, tog
       <div className={dividerClasses} />
 
       <div className={dividerClasses} />
-      <EdgeAnimationSelector 
-        currentAnim={animType} 
-        onSelect={applyEdgeAnimation} 
-        lineStyle={lineStyle as 'solid' | 'dashed' | 'dotted'} 
+      <EdgeAnimationSelector
+        currentAnim={animType}
+        onSelect={applyEdgeAnimation}
+        lineStyle={lineStyle as 'solid' | 'dashed' | 'dotted'}
       />
 
       {animType === 'beam' && (
@@ -145,12 +154,12 @@ export function ExampleToolbar({ engine, themeMode, setThemeMode, direction, tog
       <div className="flex-1" />
 
       <label className={`${btnClasses} cursor-pointer`}>
-        <FileUp size={14}/>
+        <FileUp size={14} />
         <input type="file" accept=".json" className="hidden" onChange={handleUpload} />
       </label>
-      <button onClick={handleDownload} className={btnClasses}><FileDown size={14}/></button>
+      <button onClick={handleDownload} className={btnClasses}><FileDown size={14} /></button>
       <button onClick={() => { const n = themeMode === 'light' ? 'dark' : 'light'; setThemeMode(n); engine?.setTheme(n); }} className={btnClasses}>
-        {themeMode === 'dark' ? <Sun size={14}/> : <Moon size={14}/>}
+        {themeMode === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
       </button>
     </div>
   );

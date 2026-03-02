@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { SciFlow } from '@sci-flow/core';
-import { LayoutDashboard, Layers, Activity, FlaskConical } from 'lucide-react';
+import { LayoutDashboard, Layers, Activity, StickyNote, Trash2, FlaskConical } from 'lucide-react';
 
 interface Props {
   engine: SciFlow | null;
@@ -20,14 +20,7 @@ export function FeaturePanelDoc({ engine }: Props) {
 
   const handleAnimateLayout = async () => {
     if (!engine) return;
-    const state = engine.getState();
-    const targets = new Map<string, { x: number; y: number }>();
-    let i = 0;
-    state.nodes.forEach((node) => {
-      targets.set(node.id, { x: 80 + (i % 3) * 250, y: 80 + Math.floor(i / 3) * 180 });
-      i++;
-    });
-    await engine.plugins.animation.animateNodePositions(targets, 500);
+    await engine.autoLayout('dagre');
   };
 
   const handleCollision = (mode: string) => {
@@ -43,6 +36,19 @@ export function FeaturePanelDoc({ engine }: Props) {
     setEvalResult(JSON.stringify(obj, null, 2));
   };
 
+  const handleAddNote = () => {
+    if (!engine) return;
+    const state = engine.getState();
+    const cx = (-state.viewport.x + 300) / state.viewport.zoom;
+    const cy = (-state.viewport.y + 150) / state.viewport.zoom;
+    engine.plugins.stickyNotes.add('New Note', cx, cy);
+  };
+
+  const handleClearNotes = () => {
+    if (!engine) return;
+    engine.plugins.stickyNotes.clear();
+  };
+
   return (
     <div className="absolute right-2 top-2 z-[50] bg-black/80 p-2.5 rounded-md border border-white/10 text-white w-[180px] backdrop-blur-md font-sans">
       <div className="text-xs font-semibold mb-1.5 flex items-center gap-1.5"><FlaskConical size={14} className="text-emerald-400" /> Features</div>
@@ -54,7 +60,7 @@ export function FeaturePanelDoc({ engine }: Props) {
       </Row>
 
       <Row title="Animate">
-        <Btn label={<><LayoutDashboard size={12}/> Auto-Layout</>} onClick={handleAnimateLayout} full />
+        <Btn label={<><LayoutDashboard size={12} /> Auto-Layout</>} onClick={handleAnimateLayout} full />
       </Row>
 
       <Row title="Collision">
@@ -64,11 +70,16 @@ export function FeaturePanelDoc({ engine }: Props) {
       </Row>
 
       <Row title="LOD">
-        <Btn label={<><Layers size={12}/> Check Level</>} onClick={() => alert(`LOD: ${engine?.plugins.lod.getLevel()}`)} full />
+        <Btn label={<><Layers size={12} /> Check Level</>} onClick={() => alert(`LOD: ${engine?.plugins.lod.getLevel()}`)} full />
       </Row>
 
       <Row title="Evaluate">
-        <Btn label={<><Activity size={12}/> Run Pipeline</>} onClick={handleEvaluate} full />
+        <Btn label={<><Activity size={12} /> Run Pipeline</>} onClick={handleEvaluate} full />
+      </Row>
+
+      <Row title="Sticky Notes">
+        <Btn label={<><StickyNote size={12} /> Add</>} onClick={handleAddNote} full />
+        <Btn label={<><Trash2 size={12} /> Clear</>} onClick={handleClearNotes} />
       </Row>
 
       {evalResult && (
@@ -93,11 +104,10 @@ function Btn({ label, onClick, full, active }: {
   label: React.ReactNode; onClick: () => void; full?: boolean; active?: boolean;
 }) {
   return (
-    <button onClick={onClick} className={`flex items-center justify-center gap-1 px-1.5 py-1 text-[10px] rounded-[3px] border cursor-pointer transition-colors ${
-      active 
-        ? 'bg-emerald-400 text-black border-transparent font-medium' 
-        : 'bg-white/10 text-white border-white/15 hover:bg-white/20'
-    } ${full ? 'flex-1 w-full' : ''}`}>
+    <button onClick={onClick} className={`flex items-center justify-center gap-1 px-1.5 py-1 text-[10px] rounded-[3px] border cursor-pointer transition-colors ${active
+      ? 'bg-emerald-400 text-black border-transparent font-medium'
+      : 'bg-white/10 text-white border-white/15 hover:bg-white/20'
+      } ${full ? 'flex-1 w-full' : ''}`}>
       {label}
     </button>
   );

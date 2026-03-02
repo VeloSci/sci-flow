@@ -9,8 +9,8 @@ title: Mobile & Touch Support
 
 ## Features
 
-### Pinch-to-Zoom
-Multi-touch zoom centered on the gesture midpoint with simultaneous two-finger panning.
+### Multi-Touch Gestures
+Multi-touch zoom (pinch) centered on the gesture midpoint with simultaneous two-finger panning. This is enabled by default as part of the core interaction layer.
 
 ```typescript
 // Automatically handled by TouchManager
