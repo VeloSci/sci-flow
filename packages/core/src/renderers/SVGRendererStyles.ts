@@ -139,6 +139,50 @@ export const SVG_RENDERER_STYLES = `
   }
 
   /* Connection Highlighting */
+  .sci-flow-port-selected {
+    r: 9 !important;
+    fill: #fff !important;
+    filter: drop-shadow(0 0 12px var(--sf-port-active)) brightness(1.5);
+    stroke: var(--sf-port-active) !important;
+    stroke-width: 3px !important;
+    z-index: 50 !important;
+    opacity: 1 !important;
+  }
+
+  .sci-flow-port-peer {
+    r: 8 !important;
+    fill: #fff !important;
+    filter: drop-shadow(0 0 10px #f43f5e) brightness(1.3);
+    stroke: #f43f5e !important;
+    stroke-width: 2.5px !important;
+    z-index: 25;
+  }
+
+  .sci-flow-node-peer .sci-flow-node-wrapper {
+    border-color: #f43f5e;
+    box-shadow: 0 0 20px rgba(244, 63, 94, 0.6), 0 8px 16px rgba(0,0,0,0.5);
+    transform: scale(1.03);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    animation: sf-pulse-node-peer 2s ease-in-out infinite;
+  }
+
+  .sci-flow-port-compatible {
+    r: 7 !important;
+    fill: #10b981 !important; /* Emerald green for compatible ports */
+    filter: drop-shadow(0 0 6px #10b981);
+    stroke: #fff !important;
+    stroke-width: 1.5px !important;
+    opacity: 0.9;
+  }
+
+  .sci-flow-edge-highlighted .sci-flow-edge-fg {
+    stroke: var(--sf-edge-active) !important;
+    stroke-width: 4px !important;
+    filter: drop-shadow(0 0 6px var(--sf-edge-active));
+    animation: sf-pulse-edge 1.5s ease-in-out infinite;
+    z-index: 15;
+  }
+
   .sci-flow-dragging-edge .sci-flow-port {
     opacity: 0.4;
     transition: opacity 0.3s ease;
@@ -217,6 +261,18 @@ export const SVG_RENDERER_STYLES = `
   @keyframes sf-blink {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.2; }
+  }
+
+  @keyframes sf-pulse-edge {
+    0% { stroke-width: 4px; filter: drop-shadow(0 0 4px var(--sf-edge-active)); }
+    50% { stroke-width: 6px; filter: drop-shadow(0 0 12px var(--sf-edge-active)); }
+    100% { stroke-width: 4px; filter: drop-shadow(0 0 4px var(--sf-edge-active)); }
+  }
+
+  @keyframes sf-pulse-node-peer {
+    0% { box-shadow: 0 0 15px rgba(244, 63, 94, 0.4), 0 8px 16px rgba(0,0,0,0.5); }
+    50% { box-shadow: 0 0 25px rgba(244, 63, 94, 0.8), 0 8px 16px rgba(0,0,0,0.6); }
+    100% { box-shadow: 0 0 15px rgba(244, 63, 94, 0.4), 0 8px 16px rgba(0,0,0,0.5); }
   }
 
   /* Vertical layout mode */

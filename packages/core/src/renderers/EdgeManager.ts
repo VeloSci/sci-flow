@@ -44,8 +44,37 @@ export class EdgeManager {
             const filteredObstacles = obstacles.filter(obs => obs.id !== edge.source && obs.id !== edge.target);
 
             this.updateEdgeVisuals(group, edge, sourcePos, targetPos, routingMode, filteredObstacles);
+
+            // Apply highlighting
+            const highlighted = state.highlightedConnection;
+            const isHighlighted = highlighted && (
+                (edge.source === highlighted.nodeId && edge.sourceHandle === highlighted.portId) ||
+                (edge.target === highlighted.nodeId && edge.targetHandle === highlighted.portId)
+            );
+
+            if (isHighlighted) {
+                group.classList.add('sci-flow-edge-highlighted');
+            } else {
+                group.classList.remove('sci-flow-edge-highlighted');
+            }
+
             existingEdgeDocs.delete(`edge-group-${edge.id}`);
         });
+
+        // Reorder DOM to bring highlighted edges to the front
+        const highlighted = state.highlightedConnection;
+        if (highlighted) {
+            state.edges.forEach(edge => {
+                const isHighlighted = (edge.source === highlighted.nodeId && edge.sourceHandle === highlighted.portId) ||
+                    (edge.target === highlighted.nodeId && edge.targetHandle === highlighted.portId);
+                if (isHighlighted) {
+                    const group = document.getElementById(`edge-group-${edge.id}`);
+                    if (group && group.parentElement) {
+                        group.parentElement.appendChild(group); // Move to the end of the group
+                    }
+                }
+            });
+        }
     }
 
     private createEdgeElement(edge: Edge): SVGGElement {

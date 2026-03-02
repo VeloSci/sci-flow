@@ -55,6 +55,69 @@ export class NodeManager {
                 g.classList.remove('sci-flow-node-selected');
             }
 
+            // Port Highlighting
+            const highlighted = stateManager?.getState().highlightedConnection;
+            const ports = g.querySelectorAll('.sci-flow-port') as NodeListOf<SVGCircleElement>;
+
+            let hasPeerConnection = false;
+
+            ports.forEach(p => {
+                const portId = p.dataset.portid;
+                const isSelected = highlighted && highlighted.nodeId === node.id && highlighted.portId === portId;
+
+                // For "peer" ports: find if this port is at the other end of any edge connected to the highlighted port
+                let isPeer = false;
+                if (highlighted && !isSelected) {
+                    const edges = stateManager?.getState().edges;
+                    edges?.forEach(e => {
+                        if (e.source === highlighted.nodeId && e.sourceHandle === highlighted.portId) {
+                            if (e.target === node.id && e.targetHandle === portId) {
+                                isPeer = true;
+                                hasPeerConnection = true;
+                            }
+                        } else if (e.target === highlighted.nodeId && e.targetHandle === highlighted.portId) {
+                            if (e.source === node.id && e.sourceHandle === portId) {
+                                isPeer = true;
+                                hasPeerConnection = true;
+                            }
+                        }
+                    });
+                }
+
+                // For "compatible" ports: same data type but not currently connected
+                let isCompatible = false;
+                if (highlighted && !isSelected && !isPeer && portId) {
+                    const sourceNode = stateManager.getState().nodes.get(highlighted.nodeId);
+                    const sourcePort = highlighted.type === 'input' ? sourceNode?.inputs?.[highlighted.portId] : sourceNode?.outputs?.[highlighted.portId];
+                    const targetPort = p.dataset.portType === 'in' ? node.inputs?.[portId] : node.outputs?.[portId];
+
+                    if (sourcePort && targetPort && p.dataset.portType !== (highlighted.type === 'input' ? 'in' : 'out')) {
+                        // Compatibility: matching types or either is 'any'
+                        isCompatible = sourcePort.dataType === 'any' || targetPort.dataType === 'any' || sourcePort.dataType === targetPort.dataType;
+                    }
+                }
+
+                if (isSelected) {
+                    p.classList.add('sci-flow-port-selected');
+                    p.classList.remove('sci-flow-port-peer', 'sci-flow-port-compatible');
+                } else if (isPeer) {
+                    p.classList.add('sci-flow-port-peer');
+                    p.classList.remove('sci-flow-port-selected', 'sci-flow-port-compatible');
+                } else if (isCompatible) {
+                    p.classList.add('sci-flow-port-compatible');
+                    p.classList.remove('sci-flow-port-selected', 'sci-flow-port-peer');
+                } else {
+                    p.classList.remove('sci-flow-port-selected', 'sci-flow-port-peer', 'sci-flow-port-compatible');
+                }
+            });
+
+            // Highlight node if it's a peer
+            if (hasPeerConnection) {
+                g.classList.add('sci-flow-node-peer');
+            } else {
+                g.classList.remove('sci-flow-node-peer');
+            }
+
             existingNodeDocs.delete(`node-${node.id}`);
         });
 
