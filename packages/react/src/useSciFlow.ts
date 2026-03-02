@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
-import { SciFlow, type SciFlowOptions, type Node, type Edge } from '@sci-flow/core';
+import { SciFlow, type SciFlowOptions, type Node, type Edge, type FlowState } from '@sci-flow/core';
 import type React from 'react';
 
 /** Shape of an accepted React node component passed via nodeTypes */
-export interface ReactNodeComponent {
+export type ReactNodeComponent = React.ComponentType<{
+  node: Node;
+  engine: SciFlow | null;
+  highlightedConnection?: FlowState['highlightedConnection'];
+}> & {
   nodeType?: string;
   type?: string;
   name?: string;
-  (props: { node: Node; engine: SciFlow | null }): React.ReactNode;
-  displayName?: string;
-}
+};
 
 export interface UseSciFlowProps extends Omit<SciFlowOptions, 'container' | 'nodeTypes'> {
   initialNodes?: Node[];
@@ -35,6 +37,7 @@ export function useSciFlow({
 
   const [nodes, setNodesState] = useState<Node[]>(initialNodes);
   const [edges, setEdgesState] = useState<Edge[]>(initialEdges);
+  const [highlightedConnection, setHighlightedConnection] = useState<FlowState['highlightedConnection']>();
   const [portalMounts, setPortalMounts] = useState<Map<string, HTMLElement>>(new Map());
 
   // Create engine once, on mount only
@@ -51,9 +54,14 @@ export function useSciFlow({
     });
 
     const stateManager = engineRef.current.stateManager;
+    let unsubscribe: (() => void) | undefined;
     if (stateManager) {
       stateManager.onNodesChange = (newNodes: Node[]) => setNodesState(newNodes);
       stateManager.onEdgesChange = (newEdges: Edge[]) => setEdgesState(newEdges);
+
+      unsubscribe = stateManager.subscribe((state) => {
+        setHighlightedConnection(state.highlightedConnection);
+      });
 
       stateManager.onNodeMount = (nodeId: string, container: HTMLElement) => {
         setPortalMounts(prev => {
@@ -84,6 +92,7 @@ export function useSciFlow({
     onInit?.(engineRef.current);
 
     return () => {
+      unsubscribe?.();
       engineRef.current?.destroy();
       engineRef.current = null;
     };
@@ -127,6 +136,7 @@ export function useSciFlow({
     engine: engineRef.current,
     nodes,
     edges,
+    highlightedConnection,
     portalMounts,
     nodeTypes,
     setNodes,

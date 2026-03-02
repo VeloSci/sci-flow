@@ -1,6 +1,15 @@
 export * from './useSciFlow';
 export * from './SciFlow';
 export * from './SciFlowMiniMap';
+export {
+    type Node,
+    type Edge,
+    type Connection,
+    type FlowState,
+    type ViewportState,
+    type Port,
+    type StickyNote
+} from '@sci-flow/core';
 export * from './usePlugins';
 export * from './useExport';
 export * from './useAnimation';

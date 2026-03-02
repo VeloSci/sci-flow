@@ -16,7 +16,7 @@ export function SciFlow({
     nodeTypes = [],
     ...useSciFlowProps
 }: SciFlowProps) {
-    const { containerRef, portalMounts, nodes, engine } = useSciFlow({ ...useSciFlowProps, nodeTypes });
+    const { containerRef, portalMounts, nodes, engine, highlightedConnection } = useSciFlow({ ...useSciFlowProps, nodeTypes });
 
     // Build a lookup map from node type string → React component
     const typeMap = useMemo(() => {
@@ -49,7 +49,7 @@ export function SciFlow({
 
                 const engineRef = engine as SciFlowEngine | null;
                 return createPortal(
-                    <NodeComponent key={nodeId} node={nodeData} engine={engineRef} />,
+                    <NodeComponent key={nodeId} node={nodeData} engine={engineRef} highlightedConnection={highlightedConnection} />,
                     domElement as Element
                 );
             })}
