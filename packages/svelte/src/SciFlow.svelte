@@ -44,6 +44,7 @@
   let container: HTMLDivElement;
   let engine: SciFlow;
   let portalMounts = new Map<string, HTMLElement>();
+  let highlightedConnection: FlowState["highlightedConnection"];
 
   onMount(() => {
     engine = new SciFlow({
@@ -71,6 +72,7 @@
     engine.setEdges(initialEdges);
 
     const unsubscribe = engine.subscribe((state: FlowState) => {
+      highlightedConnection = state.highlightedConnection;
       dispatch("change", state);
     });
 
@@ -84,8 +86,18 @@
   });
 
   // Reactive updates — theme and direction propagate without remounting
-  $: if (engine && initialNodes) engine.setNodes(initialNodes);
-  $: if (engine && initialEdges) engine.setEdges(initialEdges);
+  $: if (
+    engine &&
+    initialNodes &&
+    engine.getState().nodes.size !== initialNodes.length
+  )
+    engine.setNodes(initialNodes);
+  $: if (
+    engine &&
+    initialEdges &&
+    engine.getState().edges.size !== initialEdges.length
+  )
+    engine.setEdges(initialEdges);
   $: if (engine && theme !== undefined)
     engine.setTheme(theme as Partial<Theme> | "light" | "dark" | "system");
   $: if (engine && direction !== undefined) engine.setDirection(direction);
@@ -127,7 +139,12 @@
 >
   {#each mountItems as mount (mount.nodeId)}
     <div use:portal={mount.domElement}>
-      <svelte:component this={mount.component} node={mount.nodeData} />
+      <svelte:component
+        this={mount.component}
+        node={mount.nodeData}
+        {engine}
+        {highlightedConnection}
+      />
     </div>
   {/each}
   <slot />
