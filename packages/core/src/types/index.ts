@@ -68,6 +68,7 @@ export interface Port {
   label?: string;
   connectedEdges?: string[]; // Edge IDs connected to this port
   defaultValue?: JsonValue; // Value to use if no edge is connected
+  selected?: boolean;
 }
 
 export interface NodeStyle {
@@ -152,6 +153,11 @@ export interface FlowState {
   viewport: ViewportState;
   direction: 'horizontal' | 'vertical';
   draftEdge?: { sourceNodeId: string; sourcePortId: string; targetPosition: Position };
+  highlightedConnection?: {
+    nodeId: string;
+    portId: string;
+    type: 'input' | 'output';
+  };
   smartGuides?: { x?: number, y?: number }[];
   defaultEdgeType?: 'straight' | 'bezier' | 'step' | 'smart';
   defaultEdgeStyle?: Edge['style'];

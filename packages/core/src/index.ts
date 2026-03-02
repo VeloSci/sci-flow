@@ -1,17 +1,18 @@
-export { 
-  type Node, 
-  type Edge, 
-  type FlowState, 
-  type Theme, 
-  type Position, 
-  type Size, 
-  type Rect, 
-  type ViewportState, 
+export {
+  type Node,
+  type Edge,
+  type FlowState,
+  type Theme,
+  type Position,
+  type Size,
+  type Rect,
+  type ViewportState,
   type DataType,
   type JsonValue,
   type JsonMap,
   type JsonArray,
-  type Connection
+  type Connection,
+  type Port
 } from './types';
 export * from './theme/defaultThemes';
 export { StateManager } from './state/StateManager';

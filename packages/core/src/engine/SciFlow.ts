@@ -1,5 +1,6 @@
 import { StateManager } from '../state/StateManager';
 import { SVGRenderer } from '../renderers/SVGRenderer';
+import { LayoutAlgorithm, LayoutOptions } from '../plugins/LayoutManager';
 import { CanvasRenderer } from '../renderers/CanvasRenderer';
 import { BaseRenderer } from '../renderers/BaseRenderer';
 import { GridRenderer } from '../renderers/GridRenderer';
@@ -160,6 +161,11 @@ export class SciFlow {
 
   public updateNodePosition(id: string, x: number, y: number) {
     this.stateManager.updateNodePosition(id, x, y);
+  }
+
+  public async autoLayout(algorithm: LayoutAlgorithm = 'dagre', options?: LayoutOptions) {
+    const positions = this.plugins.layout.computeLayout(algorithm, options);
+    await this.plugins.animation.animateNodePositions(positions, 500);
   }
 
   public fitView(padding = 50) {
