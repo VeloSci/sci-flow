@@ -1,6 +1,6 @@
 {
   "name": "@sci-flow/core",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Core agnostic engine for sci-flow",
   "type": "module",
   "main": "dist/index.js",

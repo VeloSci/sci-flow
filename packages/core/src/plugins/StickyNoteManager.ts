@@ -87,7 +87,7 @@ export class StickyNoteManager {
 
     private showContextMenu(noteId: string, clientX: number, clientY: number) {
         this.closeContextMenu();
-        
+
         const note = this.notes.get(noteId);
         if (!note) return;
 
@@ -116,7 +116,8 @@ export class StickyNoteManager {
                 Bg Color
                 <div style="display: flex; gap: 4px; align-items: center">
                     <input type="range" id="sn-bg-opacity" min="0" max="1" step="0.1" value="${note.bgOpacity ?? 1}" style="width: 40px;">
-                    <input type="color" id="sn-bg" value="${note.color}" style="width: 24px; height: 24px; border: none; background: transparent; cursor: pointer;">
+                    <input type="color" id="sn-bg" value="${note.color.startsWith('#') ? note.color : '#ffd93d'}" style="width: 24px; height: 24px; border: none; background: transparent; cursor: pointer;">
+                    <button id="sn-transparent" style="background:transparent; border:1px dashed #666; color:#fff; border-radius:3px; padding: 2px 4px; cursor:pointer; font-size: 10px;">Clear</button>
                 </div>
             </label>
             <label style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
@@ -162,6 +163,7 @@ export class StickyNoteManager {
 
         menu.querySelector('#sn-bg')?.addEventListener('input', (e) => updater({ color: (e.target as HTMLInputElement).value }));
         menu.querySelector('#sn-bg-opacity')?.addEventListener('input', (e) => updater({ bgOpacity: parseFloat((e.target as HTMLInputElement).value) }));
+        menu.querySelector('#sn-transparent')?.addEventListener('click', () => updater({ color: 'transparent', bgOpacity: 0 }));
         menu.querySelector('#sn-text')?.addEventListener('input', (e) => updater({ textColor: (e.target as HTMLInputElement).value }));
         menu.querySelector('#sn-size')?.addEventListener('change', (e) => updater({ fontSize: parseInt((e.target as HTMLInputElement).value, 10) }));
         menu.querySelector('#sn-align-left')?.addEventListener('click', () => updater({ textAlign: 'left' }));
@@ -196,7 +198,7 @@ export class StickyNoteManager {
                 el.id = id;
                 el.dataset.itemId = id;
                 el.className = 'sci-flow-sticky-note';
-                
+
                 // Allow interaction on the note container, but delegate drag to DragManager
                 el.style.position = 'absolute';
                 el.style.pointerEvents = 'all';
@@ -268,17 +270,29 @@ export class StickyNoteManager {
             el.style.top = `${note.position.y}px`;
             el.style.width = `${note.width}px`;
             el.style.height = `${note.height}px`;
-            
-            // Convert hex color to rgba to apply opacity
-            const hex = note.color.replace('#', '');
-            const r = parseInt(hex.substring(0, 2), 16);
-            const g = parseInt(hex.substring(2, 4), 16);
-            const b = parseInt(hex.substring(4, 6), 16);
-            const alpha = note.bgOpacity !== undefined ? note.bgOpacity : 1;
-            el.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+
+            // Apply color. If it's hex, convert/mix with bgOpacity. 
+            // If it's already rgba/hsla/named, use it directly.
+            const color = note.color.trim();
+            if (color.startsWith('#')) {
+                const hex = color.replace('#', '');
+                const r = parseInt(hex.substring(0, 2), 16);
+                const g = parseInt(hex.substring(2, 4), 16);
+                const b = parseInt(hex.substring(4, 6), 16);
+                const alpha = note.bgOpacity !== undefined ? note.bgOpacity : 1;
+                el.style.backgroundColor = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            } else {
+                el.style.backgroundColor = color;
+                // If direct color is used, we might still want to apply opacity if it's set and the color doesn't have it
+                if (note.bgOpacity !== undefined && note.bgOpacity < 1 && !color.includes('rgba') && !color.includes('hsla')) {
+                    el.style.opacity = (parseFloat(el.style.opacity || '1') * note.bgOpacity).toString();
+                }
+            }
 
             // Keep pinned opacity as overall lowering if pinned
-            el.style.opacity = note.pinned ? '0.7' : '1';
+            if (note.pinned) {
+                el.style.opacity = (parseFloat(el.style.opacity || '1') * 0.7).toString();
+            }
 
             existingIds.delete(id);
         }
