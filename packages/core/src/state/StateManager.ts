@@ -61,6 +61,7 @@ export class StateManager {
   public setSelection(nodeIds: string[], edgeIds: string[]) {
     this.state.nodes.forEach(n => n.selected = nodeIds.includes(n.id));
     this.state.edges.forEach(e => e.selected = edgeIds.includes(e.id));
+    this.state.highlightedConnection = undefined;
     this.notify();
   }
 
@@ -88,6 +89,15 @@ export class StateManager {
   }
 
   public clearDraftEdge() { this.state.draftEdge = undefined; this.notify(); }
+
+  public setHighlightedConnection(nodeId?: string, portId?: string, type?: 'input' | 'output') {
+    if (nodeId && portId && type) {
+      this.state.highlightedConnection = { nodeId, portId, type };
+    } else {
+      this.state.highlightedConnection = undefined;
+    }
+    this.notify();
+  }
 
   public removeNode(id: string) {
     const descendants = this.getDescendantsLocal([id]);

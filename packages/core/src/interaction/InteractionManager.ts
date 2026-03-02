@@ -5,6 +5,7 @@ import { SelectionManager } from './SelectionManager';
 import { ConnectionManager } from './ConnectionManager';
 import { DragManager } from './DragManager';
 import { ShortcutManager } from './ShortcutManager';
+import { TouchManager } from './TouchManager';
 
 export interface InteractionOptions {
     container: HTMLElement;
@@ -26,11 +27,14 @@ export class InteractionManager {
     private connection: ConnectionManager;
     private drag: DragManager;
     private shortcuts: ShortcutManager;
+    private touch: TouchManager;
 
     private isPanning = false;
     private lastPointerPos: Position = { x: 0, y: 0 };
+    private pointerDownPos: Position = { x: 0, y: 0 };
     private isSpacePressed = false;
     private cleanupEvents: Array<() => void> = [];
+    private pendingPort: { nodeId: string, portId: string, pointerId: number } | null = null;
 
     constructor({ container, stateManager, snapToGrid = true, gridSize = 20, showSmartGuides = true, plugins }: InteractionOptions) {
         this.container = container;
@@ -41,6 +45,7 @@ export class InteractionManager {
         this.connection = new ConnectionManager(container, stateManager);
         this.drag = new DragManager(container, stateManager, plugins, { snapToGrid, gridSize, showSmartGuides });
         this.shortcuts = new ShortcutManager(stateManager, plugins);
+        this.touch = new TouchManager(container, stateManager);
 
         this.bindEvents();
     }
@@ -90,10 +95,19 @@ export class InteractionManager {
     }
 
     private handlePointerDown(e: PointerEvent) {
+        this.touch.trackPointer(e);
+
         const target = e.target as HTMLElement;
         const portEl = target.closest('.sci-flow-port') as HTMLElement;
+        this.pointerDownPos = { x: e.clientX, y: e.clientY };
+
         if (portEl?.dataset.nodeid && portEl?.dataset.portid) {
-            this.connection.startDraft(portEl.dataset.nodeid, portEl.dataset.portid, e.pointerId);
+            this.pendingPort = {
+                nodeId: portEl.dataset.nodeid,
+                portId: portEl.dataset.portid,
+                pointerId: e.pointerId
+            };
+            this.container.setPointerCapture(e.pointerId);
             return;
         }
 
@@ -110,10 +124,10 @@ export class InteractionManager {
         const clickedNodeId = this.findNodeAt(flowPos);
         if (clickedNodeId) {
             const node = state.nodes.get(clickedNodeId);
-            const selectedIds = node?.selected 
+            const selectedIds = node?.selected
                 ? Array.from(state.nodes.values()).filter(n => n.selected).map(n => n.id)
                 : [clickedNodeId];
-            
+
             if (!node?.selected && !e.shiftKey) {
                 this.stateManager.setSelection([clickedNodeId], []);
             } else if (e.shiftKey) {
@@ -162,6 +176,20 @@ export class InteractionManager {
         const rect = this.container.getBoundingClientRect();
         const flowPos = this.screenToFlow({ x: e.clientX, y: e.clientY }, state.viewport, rect);
 
+        if (this.touch.handlePinchZoom(e)) {
+            return;
+        }
+
+        if (this.pendingPort) {
+            const dx = e.clientX - this.pointerDownPos.x;
+            const dy = e.clientY - this.pointerDownPos.y;
+            if (Math.sqrt(dx * dx + dy * dy) > 5) {
+                this.connection.startDraft(this.pendingPort.nodeId, this.pendingPort.portId, this.pendingPort.pointerId);
+                this.pendingPort = null;
+            }
+            return;
+        }
+
         if (this.connection.isDrafting()) {
             this.connection.updateDraft(flowPos);
         } else if (this.drag.isDragging()) {
@@ -174,6 +202,39 @@ export class InteractionManager {
     }
 
     private handlePointerUp(e: PointerEvent) {
+        this.touch.handleTap(e);
+        this.touch.releasePointer(e);
+
+        if (this.pendingPort) {
+            // It was a click!
+            // We use the data from pointerdown since target might have shifted slightly
+            const nodeId = this.pendingPort.nodeId;
+            const portId = this.pendingPort.portId;
+            const node = this.stateManager.getState().nodes.get(nodeId);
+            const port = node?.inputs?.[portId] || node?.outputs?.[portId];
+
+            if (port) {
+                const type = node?.inputs?.[portId] ? 'input' : 'output';
+
+                // Select related edges
+                const edges = this.stateManager.getState().edges;
+                const relatedEdgeIds: string[] = [];
+                edges.forEach(e => {
+                    if ((e.source === nodeId && e.sourceHandle === portId) ||
+                        (e.target === nodeId && e.targetHandle === portId)) {
+                        relatedEdgeIds.push(e.id);
+                    }
+                });
+
+                // setSelection clears highlightedConnection internally, so we call it first
+                this.stateManager.setSelection([], relatedEdgeIds);
+                this.stateManager.setHighlightedConnection(nodeId, portId, type);
+            }
+
+            this.container.releasePointerCapture(this.pendingPort.pointerId);
+            this.pendingPort = null;
+        }
+
         this.connection.endDraft(e);
         this.drag.endDrag(e.pointerId);
         this.selection.endSelection();

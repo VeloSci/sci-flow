@@ -1,5 +1,5 @@
 import { StateManager } from '../state/StateManager';
-import type { Position } from '../types';
+import type { Position, Node, Edge } from '../types';
 
 export type LayoutAlgorithm = 'dagre' | 'force' | 'grid' | 'radial';
 
@@ -12,19 +12,26 @@ export interface LayoutOptions {
 
 /** Auto-arrange layout algorithms (dagre, force, grid, radial). */
 export class LayoutManager {
-    constructor(private stateManager: StateManager) {}
+    constructor(private stateManager: StateManager) { }
 
     /** Calculate new positions for all nodes using the given algorithm. */
     public computeLayout(algorithm: LayoutAlgorithm, options?: LayoutOptions): Map<string, Position> {
         const state = this.stateManager.getState();
         const nodes = [...state.nodes.values()];
         const edges = [...state.edges.values()];
-        const spacing = options?.nodeSpacing || 200;
-        const rankSpacing = options?.rankSpacing || 150;
+        const spacing = options?.nodeSpacing || 100; // Separation between nodes in same rank
+        const rankSpacing = options?.rankSpacing || 180; // Separation between ranks
+
+        // Determine direction: options > state > default TB
+        let layoutDir = options?.direction;
+        if (!layoutDir) {
+            const flowDir = state.direction || 'horizontal';
+            layoutDir = flowDir === 'horizontal' ? 'LR' : 'TB';
+        }
 
         switch (algorithm) {
             case 'grid': return this.gridLayout(nodes, spacing);
-            case 'dagre': return this.dagreLayout(nodes, edges, spacing, rankSpacing, options?.direction);
+            case 'dagre': return this.dagreLayout(nodes, edges, spacing, rankSpacing, layoutDir);
             case 'force': return this.forceLayout(nodes, edges, spacing, options?.iterations);
             case 'radial': return this.radialLayout(nodes, spacing);
         }
@@ -39,7 +46,7 @@ export class LayoutManager {
         });
     }
 
-    private gridLayout(nodes: { id: string }[], spacing: number): Map<string, Position> {
+    private gridLayout(nodes: Node[], spacing: number): Map<string, Position> {
         const cols = Math.ceil(Math.sqrt(nodes.length));
         const result = new Map<string, Position>();
         nodes.forEach((node, i) => {
@@ -49,48 +56,205 @@ export class LayoutManager {
     }
 
     private dagreLayout(
-        nodes: { id: string }[], edges: { source: string; target: string }[],
-        spacing: number, rankSpacing: number, direction?: string
+        nodes: Node[], edges: Edge[],
+        spacing: number, rankSpacing: number, direction?: 'TB' | 'LR' | 'BT' | 'RL'
     ): Map<string, Position> {
-        // Simple topological-sort based hierarchical layout
+        const isHoriz = direction === 'LR' || direction === 'RL';
+        const nodeMap = new Map<string, Node>(nodes.map(n => [n.id, n]));
+
+        // 1. Layering (Simple BFS/Topological Sort)
         const adj = new Map<string, string[]>();
+        const revAdj = new Map<string, string[]>();
         const inDeg = new Map<string, number>();
-        nodes.forEach(n => { adj.set(n.id, []); inDeg.set(n.id, 0); });
+        nodes.forEach(n => {
+            adj.set(n.id, []);
+            revAdj.set(n.id, []);
+            inDeg.set(n.id, 0);
+        });
         edges.forEach(e => {
             adj.get(e.source)?.push(e.target);
+            revAdj.get(e.target)?.push(e.source);
             inDeg.set(e.target, (inDeg.get(e.target) || 0) + 1);
         });
-        const ranks: string[][] = [];
+
+        // Phase 1: Rank nodes (Handle Cycles with DFS)
+        const nodeRanks = new Map<string, number>();
         const visited = new Set<string>();
-        let queue = nodes.filter(n => (inDeg.get(n.id) || 0) === 0).map(n => n.id);
-        while (queue.length > 0) {
-            ranks.push(queue);
-            queue.forEach(id => visited.add(id));
-            const next: string[] = [];
-            for (const id of queue) {
-                for (const child of (adj.get(id) || [])) {
-                    if (!visited.has(child) && !next.includes(child)) next.push(child);
+        const stack = new Set<string>();
+        const backEdges: { source: string; target: string }[] = [];
+
+        const breakCycles = (id: string) => {
+            visited.add(id);
+            stack.add(id);
+            for (const neighbor of adj.get(id) || []) {
+                if (stack.has(neighbor)) {
+                    backEdges.push({ source: id, target: neighbor });
+                } else if (!visited.has(neighbor)) {
+                    breakCycles(neighbor);
                 }
             }
-            queue = next;
-        }
-        // Place unvisited (cycles)
-        nodes.forEach(n => { if (!visited.has(n.id)) ranks.push([n.id]); });
+            stack.delete(id);
+        };
 
-        const isHoriz = direction === 'LR' || direction === 'RL';
+        nodes.forEach(n => { if (!visited.has(n.id)) breakCycles(n.id); });
+
+        // Filter out back-edges for ranking
+        const rankingEdges = edges.filter(e => !backEdges.some(be => be.source === e.source && be.target === e.target));
+
+        // Re-calculate in-degrees for DAG
+        const dagInDeg = new Map<string, number>();
+        nodes.forEach(n => dagInDeg.set(n.id, 0));
+        rankingEdges.forEach(e => dagInDeg.set(e.target, (dagInDeg.get(e.target) || 0) + 1));
+
+        const queue = nodes.filter(n => (dagInDeg.get(n.id) || 0) === 0).map(n => n.id);
+        let maxRank = 0;
+        let rankIdx = 0;
+        let currentLevel = queue;
+        visited.clear();
+
+        while (currentLevel.length > 0) {
+            const nextLevel: string[] = [];
+            for (const id of currentLevel) {
+                if (visited.has(id)) continue;
+                visited.add(id);
+                nodeRanks.set(id, rankIdx);
+                for (const child of (adj.get(id) || [])) {
+                    // Skip back edges for ranking
+                    if (backEdges.some(be => be.source === id && be.target === child)) continue;
+                    if (!visited.has(child)) nextLevel.push(child);
+                }
+            }
+            currentLevel = Array.from(new Set(nextLevel));
+            if (currentLevel.length > 0) rankIdx++;
+        }
+        maxRank = rankIdx;
+
+        // Ensure all nodes (including cycles) have a rank
+        nodes.forEach(n => {
+            if (!nodeRanks.has(n.id)) {
+                nodeRanks.set(n.id, maxRank);
+            }
+        });
+
+        // Group into layers
+        const levels: string[][] = Array.from({ length: maxRank + 1 }, () => []);
+        nodeRanks.forEach((rank, id) => levels[rank].push(id));
+
+        // 2. Vertex Ordering (Barycenter + Transpose)
+        const iterations = 12;
+        for (let iter = 0; iter < iterations; iter++) {
+            const forward = iter % 2 === 0;
+            const start = forward ? 1 : levels.length - 2;
+            const end = forward ? levels.length : -1;
+            const step = forward ? 1 : -1;
+
+            for (let i = start; i !== end; i += step) {
+                const layer = levels[i];
+                const neighborLevel = levels[forward ? i - 1 : i + 1];
+                const neighborPositions = new Map<string, number>(neighborLevel.map((id, idx) => [id, idx]));
+
+                // Barycenter Pass
+                const barycenters = new Map<string, number>();
+                layer.forEach(id => {
+                    const neighbors = (forward ? revAdj : adj).get(id) || [];
+                    const inNeighborLevel = neighbors.filter(n => neighborPositions.has(n));
+                    if (inNeighborLevel.length === 0) {
+                        barycenters.set(id, 0.5);
+                    } else {
+                        const sum = inNeighborLevel.reduce((acc, p) => acc + (neighborPositions.get(p) ?? 0), 0);
+                        barycenters.set(id, sum / inNeighborLevel.length);
+                    }
+                });
+                layer.sort((a, b) => (barycenters.get(a) ?? 0) - (barycenters.get(b) ?? 0));
+
+                // Transpose Pass (Improved local search)
+                let improved = true;
+                let transposeIter = 0;
+                while (improved && transposeIter < 2) {
+                    improved = false;
+                    for (let j = 0; j < layer.length - 1; j++) {
+                        const v = layer[j];
+                        const w = layer[j + 1];
+                        if (this.calculateCrossings(v, w, neighborPositions, forward ? revAdj : adj) >
+                            this.calculateCrossings(w, v, neighborPositions, forward ? revAdj : adj)) {
+                            layer[j] = w;
+                            layer[j + 1] = v;
+                            improved = true;
+                        }
+                    }
+                    transposeIter++;
+                }
+            }
+        }
+
+        // 3. Coordinate Assignment (Balanced Centering)
         const result = new Map<string, Position>();
-        ranks.forEach((rank, r) => {
-            rank.forEach((id, i) => {
-                const x = isHoriz ? r * rankSpacing + 50 : i * spacing + 50;
-                const y = isHoriz ? i * spacing + 50 : r * rankSpacing + 50;
-                result.set(id, { x, y });
+        const levelOffsets: number[] = [];
+        let currentTotalOffset = 50;
+
+        // Calculate layer breadths and offsets (Rank-axis)
+        levels.forEach((level) => {
+            let maxInRank = 0;
+            level.forEach(id => {
+                const node = nodeMap.get(id);
+                const size = isHoriz ? (node?.style?.width || 180) : (node?.style?.height || 120);
+                maxInRank = Math.max(maxInRank, size);
+            });
+            levelOffsets.push(currentTotalOffset);
+            currentTotalOffset += maxInRank + rankSpacing;
+        });
+
+        // 4. Cross-axis Centering (Balanced)
+        const maxLevelSize = Math.max(...levels.map(l => {
+            return l.reduce((acc, id) => {
+                const node = nodeMap.get(id);
+                return acc + (isHoriz ? (node?.style?.height || 120) : (node?.style?.width || 180)) + spacing;
+            }, -spacing);
+        }));
+
+        levels.forEach((level, r) => {
+            const rankOffset = levelOffsets[r];
+            const currentLevelSize = level.reduce((acc, id) => {
+                const node = nodeMap.get(id);
+                return acc + (isHoriz ? (node?.style?.height || 120) : (node?.style?.width || 180)) + spacing;
+            }, -spacing);
+
+            let crossOffset = (maxLevelSize - currentLevelSize) / 2 + 50;
+
+            level.forEach(id => {
+                const node = nodeMap.get(id)!;
+                const nodeWidth = node.style?.width || 180;
+                const nodeHeight = node.style?.height || 120;
+
+                const finalX = isHoriz ? rankOffset : crossOffset;
+                const finalY = isHoriz ? crossOffset : rankOffset;
+
+                result.set(id, { x: finalX, y: finalY });
+                crossOffset += (isHoriz ? nodeHeight : nodeWidth) + spacing;
             });
         });
+
         return result;
     }
 
+    private calculateCrossings(v: string, w: string, neighborPositions: Map<string, number>, neighborAdj: Map<string, string[]>): number {
+        const vNeighbors = neighborAdj.get(v) || [];
+        const wNeighbors = neighborAdj.get(w) || [];
+        let crossings = 0;
+        for (const vn of vNeighbors) {
+            const vPos = neighborPositions.get(vn);
+            if (vPos === undefined) continue;
+            for (const wn of wNeighbors) {
+                const wPos = neighborPositions.get(wn);
+                if (wPos === undefined) continue;
+                if (vPos > wPos) crossings++;
+            }
+        }
+        return crossings;
+    }
+
     private forceLayout(
-        nodes: { id: string; position: Position }[], edges: { source: string; target: string }[],
+        nodes: Node[], edges: Edge[],
         spacing: number, iterations = 100
     ): Map<string, Position> {
         // Simple force-directed: repulsion between nodes, attraction on edges
@@ -134,7 +298,7 @@ export class LayoutManager {
         return pos as Map<string, Position>;
     }
 
-    private radialLayout(nodes: { id: string }[], spacing: number): Map<string, Position> {
+    private radialLayout(nodes: Node[], spacing: number): Map<string, Position> {
         const result = new Map<string, Position>();
         const cx = 400; const cy = 400;
         const radius = spacing * Math.max(1, nodes.length / (2 * Math.PI));
