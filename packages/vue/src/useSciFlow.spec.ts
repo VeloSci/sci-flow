@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/vue';
-import { defineComponent, markRaw, onMounted } from 'vue';
+import { defineComponent } from 'vue';
 import { useSciFlow } from './useSciFlow';
 import { SciFlow } from '@sci-flow/core';
 
@@ -29,7 +29,7 @@ describe('useSciFlow composable', () => {
 
     const TestComponent = defineComponent({
       setup() {
-        const { containerRef, engine, nodes, edges } = useSciFlow({
+        const { containerRef, nodes, edges } = useSciFlow({
           initialNodes: [{ id: 'n1', position: { x: 0, y: 0 }, data: { label: 'Node 1' }, type: 'default', inputs: {}, outputs: {} }],
           initialEdges: [{ id: 'e1', source: 'n1', target: 'n2', sourceHandle: 'out', targetHandle: 'in' }],
           onInit(engineInst) {
@@ -57,10 +57,13 @@ describe('useSciFlow composable', () => {
 
     expect(initialized).toBe(true);
     expect(internalEngine).not.toBeNull();
-    expect(internalEngine?.stateManager).toBeDefined();
+    if (internalEngine) {
+      const eng = internalEngine as SciFlow;
+      expect(eng.stateManager).toBeDefined();
 
-    const state = internalEngine?.getState();
-    expect(state?.nodes.size).toBe(1);
-    expect(state?.edges.size).toBe(1);
+      const state = eng.getState();
+      expect(state?.nodes.size).toBe(1);
+      expect(state?.edges.size).toBe(1);
+    }
   });
 });
