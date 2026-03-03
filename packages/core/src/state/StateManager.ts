@@ -10,6 +10,9 @@ export class StateManager {
   public readonly id: string;
   public readonly history = new HistoryManager();
   private registry = new RegistryManager();
+  private isBatching = false;
+  private pendingNotify = false;
+  private dirty = { nodes: false, edges: false, viewport: false };
 
   public onNodesChange?: (nodes: Node[]) => void;
   public onEdgesChange?: (edges: Edge[]) => void;
@@ -40,13 +43,43 @@ export class StateManager {
   public getNodeRegistry() { return this.registry.getFullRegistry(); }
 
   public getState() { return this.state; }
+  public getDirty() { return this.dirty; }
+  public clearDirty() { this.dirty = { nodes: false, edges: false, viewport: false }; }
+
   public subscribe(l: Listener) { this.listeners.add(l); return () => this.listeners.delete(l); }
-  private notify() { this.listeners.forEach(l => l(this.state)); }
-  public forceUpdate() { this.notify(); }
+
+  private notify() {
+    if (this.isBatching) {
+      this.pendingNotify = true;
+      return;
+    }
+    this.listeners.forEach(l => l(this.state));
+    this.pendingNotify = false;
+  }
+
+  public batch(fn: () => void) {
+    this.isBatching = true;
+    try {
+      fn();
+    } finally {
+      this.isBatching = false;
+      if (this.pendingNotify) {
+        this.notify();
+      }
+    }
+  }
+
+  public forceUpdate() {
+    this.dirty.nodes = true;
+    this.dirty.edges = true;
+    this.dirty.viewport = true;
+    this.notify();
+  }
 
   public setNodes(nodes: Node[]) {
     this.state.nodes.clear();
     nodes.forEach(n => this.state.nodes.set(n.id, n));
+    this.dirty.nodes = true;
     this.notify();
     this.onNodesChange?.(Array.from(this.state.nodes.values()));
   }
@@ -54,6 +87,7 @@ export class StateManager {
   public setEdges(edges: Edge[]) {
     this.state.edges.clear();
     edges.forEach(e => this.state.edges.set(e.id, e));
+    this.dirty.edges = true;
     this.notify();
     this.onEdgesChange?.(Array.from(this.state.edges.values()));
   }
@@ -62,23 +96,32 @@ export class StateManager {
     this.state.nodes.forEach(n => n.selected = nodeIds.includes(n.id));
     this.state.edges.forEach(e => e.selected = edgeIds.includes(e.id));
     this.state.highlightedConnection = undefined;
+    this.dirty.nodes = true;
+    this.dirty.edges = true;
     this.notify();
   }
 
   public appendSelection(nodeId?: string, edgeId?: string) {
     if (nodeId) {
       const node = this.state.nodes.get(nodeId);
-      if (node) node.selected = true;
+      if (node) {
+        node.selected = true;
+        this.dirty.nodes = true;
+      }
     }
     if (edgeId) {
       const edge = this.state.edges.get(edgeId);
-      if (edge) edge.selected = true;
+      if (edge) {
+        edge.selected = true;
+        this.dirty.edges = true;
+      }
     }
     this.notify();
   }
 
   public addNode(node: Node) {
     this.state.nodes.set(node.id, node);
+    this.dirty.nodes = true;
     this.notify();
     this.onNodesChange?.(Array.from(this.state.nodes.values()));
   }
@@ -136,6 +179,7 @@ export class StateManager {
     const node = this.state.nodes.get(id);
     if (node) {
       node.position = { x, y };
+      this.dirty.nodes = true;
       this.notify();
       if (!silent) this.onNodesChange?.(Array.from(this.state.nodes.values()));
     }
@@ -143,6 +187,7 @@ export class StateManager {
 
   public addEdge(edge: Edge) {
     this.state.edges.set(edge.id, edge);
+    this.dirty.edges = true;
     this.notify();
     this.saveSnapshot();
     this.onEdgesChange?.(Array.from(this.state.edges.values()));
@@ -151,6 +196,7 @@ export class StateManager {
 
   public removeEdge(id: string) {
     if (this.state.edges.delete(id)) {
+      this.dirty.edges = true;
       this.notify();
       this.saveSnapshot();
       this.onEdgesChange?.(Array.from(this.state.edges.values()));
@@ -284,6 +330,9 @@ export class StateManager {
       if (Array.isArray(data.edges)) data.edges.forEach((e: Edge) => this.state.edges.set(e.id, e));
       if (data.viewport) this.state.viewport = data.viewport;
       if (data.direction) this.state.direction = data.direction;
+      this.dirty.nodes = true;
+      this.dirty.edges = true;
+      this.dirty.viewport = true;
       this.notify();
       this.onNodesChange?.(Array.from(this.state.nodes.values()));
       this.onEdgesChange?.(Array.from(this.state.edges.values()));
@@ -291,7 +340,11 @@ export class StateManager {
     } catch (err) { console.error('Failed to parse SciFlow JSON', err); }
   }
 
-  public setViewport(v: ViewportState) { this.state.viewport = v; this.notify(); }
+  public setViewport(v: ViewportState) {
+    this.state.viewport = v;
+    this.dirty.viewport = true;
+    this.notify();
+  }
 
   // --- Smart Guides ---
   public setSmartGuides(guides?: { x?: number, y?: number }[]) {

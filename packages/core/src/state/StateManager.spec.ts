@@ -129,4 +129,31 @@ describe('StateManager', () => {
     // Should only be called once by addNode, not by silent update
     expect(onNodesChange).toHaveBeenCalledTimes(1);
   });
+
+  it('should batch multiple updates and notify once', () => {
+    const listener = vi.fn();
+    manager.subscribe(listener);
+
+    manager.batch(() => {
+      manager.addNode(mockNode);
+      manager.addNode(mockNode2);
+      manager.updateNodePosition('n1', 200, 200);
+      manager.setViewport({ x: 10, y: 10, zoom: 2 });
+    });
+
+    // Despite 4 operations, listener should be called exactly once
+    expect(listener).toHaveBeenCalledTimes(1);
+    
+    const state = manager.getState();
+    expect(state.nodes.size).toBe(2);
+    expect(state.viewport).toEqual({ x: 10, y: 10, zoom: 2 });
+    
+    // Check dirty flags were cleared (if we can access them or check side effects)
+    const dirty = manager.getDirty();
+    expect(dirty.nodes).toBe(true);
+    expect(dirty.viewport).toBe(true);
+    
+    manager.clearDirty();
+    expect(manager.getDirty().nodes).toBe(false);
+  });
 });

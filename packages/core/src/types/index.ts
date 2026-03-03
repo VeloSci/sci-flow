@@ -147,6 +147,11 @@ export interface Edge {
   data?: JsonMap;
 }
 
+export interface SmartGuide {
+  x?: number;
+  y?: number;
+}
+
 export interface FlowState {
   nodes: Map<string, Node>;
   edges: Map<string, Edge>;
@@ -158,7 +163,7 @@ export interface FlowState {
     portId: string;
     type: 'input' | 'output';
   };
-  smartGuides?: { x?: number, y?: number }[];
+  smartGuides?: SmartGuide[];
   defaultEdgeType?: 'straight' | 'bezier' | 'step' | 'smart';
   defaultEdgeStyle?: Edge['style'];
 }
