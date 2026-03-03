@@ -21,9 +21,12 @@ async function mountExample() {
   root = createRoot(container.value)
   
   root.render(
-    React.createElement(FullExampleApp, {
-      theme: isDark.value ? 'dark' : 'light'
-    })
+    React.createElement(React.Fragment, null, [
+      React.createElement('h3', { style: { margin: '20px 0 10px', color: 'var(--vp-c-text-1)' } }, 'SVG Engine (Default)'),
+      React.createElement(FullExampleApp, { key: 'svg', theme: isDark.value ? 'dark' : 'light', renderer: 'svg' }),
+      React.createElement('h3', { style: { margin: '40px 0 10px', color: 'var(--vp-c-text-1)' } }, 'Canvas 2D Engine (Performance Optimized)'),
+      React.createElement(FullExampleApp, { key: 'canvas', theme: isDark.value ? 'dark' : 'light', renderer: 'canvas' })
+    ])
   )
 }
 

@@ -18,6 +18,10 @@ const props = defineProps({
   height: {
     type: String,
     default: '400px'
+  },
+  renderer: {
+    type: String,
+    default: 'auto'
   }
 })
 
@@ -50,6 +54,7 @@ async function mountFlow() {
         initialEdges: props.edges,
         theme: isDark.value ? 'dark' : 'light',
         style: { width: '100%', height: '100%' },
+        renderer: props.renderer,
         onInit: (e) => setEngine(e)
       }),
       createElement(SciFlowMiniMap, {

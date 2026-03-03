@@ -46,7 +46,7 @@ const initialEdges: Edge[] = [
   { id: 'e4', source: 'n2', target: 'n4', sourceHandle: 'low', targetHandle: 'in2', type: 'bezier', data: { label: 'Low Pass' } },
 ];
 
-export const FullExampleApp = ({ theme = 'dark' }: { theme?: 'light' | 'dark' }) => {
+export const FullExampleApp = ({ theme = 'dark', renderer = 'auto' }: { theme?: 'light' | 'dark', renderer?: 'svg' | 'canvas' | 'auto' }) => {
   const [themeMode, setThemeMode] = useState<'light' | 'dark'>(theme);
   const [direction, setDirection] = useState<'horizontal' | 'vertical'>('horizontal');
   const [engine, setEngine] = useState<SciFlow | null>(null);
@@ -103,7 +103,7 @@ export const FullExampleApp = ({ theme = 'dark' }: { theme?: 'light' | 'dark' })
         <ReactSciFlow
           initialNodes={initialNodes}
           initialEdges={initialEdges}
-          renderer="auto"
+          renderer={renderer}
           theme={themeMode}
           minZoom={0.1}
           maxZoom={5}
