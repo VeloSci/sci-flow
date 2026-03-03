@@ -14,6 +14,20 @@ Experience SciFlow across React, Vue, Svelte, and Vanilla JS — all sharing the
 
 ---
 
+## High-Performance Canvas Rendering
+
+This example is forced to use the **Canvas 2D Renderer**. It supports the same interactions and animations (like the beam effect) but is optimized for large-scale graphs.
+
+<InteractiveFlow 
+  title="Full Canvas Example" 
+  :nodes="sampleFlowData.nodes" 
+  :edges="sampleFlowData.edges" 
+  renderer="canvas"
+  height="500px"
+/>
+
+---
+
 ## Playground Controls
 
 | Control | Action |
@@ -28,6 +42,8 @@ Experience SciFlow across React, Vue, Svelte, and Vanilla JS — all sharing the
 ## Features in this Demo
 
 - **Agnostic Core** — The same state, pathfinding, and undo/redo logic runs identically in all four frameworks.
+- **Dual Rendering Engine** — Switch between **SVG** (for DOM flexibility) and **Canvas** (for extreme performance) with a single command.
+- **Unified Interaction** — Hit testing for nodes, ports, and edges works identically across both renderers.
 - **Visual Consistency** — All framework tabs use the core's default node renderer, producing identical output.
 - **Live Theme Switching** — Theme changes call `engine.setTheme()` in-place without remounting the framework — no flash.
 - **Horizontal / Vertical Layout Toggle** — Calling `engine.setDirection()` runs a topological sort on the graph and auto-repositions all nodes. In vertical mode, ports move to the top/bottom edges and labels are hidden.
