@@ -3,6 +3,8 @@ import { StateManager } from '../state/StateManager';
 import { NodeDefinition } from '../state/RegistryManager';
 
 export class NodeManager {
+    private elementCache: Map<string, SVGGElement> = new Map();
+
     constructor(
         private nodesGroup: SVGGElement
     ) { }
@@ -14,11 +16,20 @@ export class NodeManager {
         registry: Map<string, NodeDefinition>,
         direction: 'horizontal' | 'vertical' = 'horizontal'
     ): void {
+        const state = stateManager?.getState();
+        const highlighted = state?.highlightedConnection;
+
         nodes.forEach(node => {
-            let g = document.getElementById(`node-${node.id}`) as SVGGElement | null;
+            let g = this.elementCache.get(node.id);
+            if (!g) {
+                g = (document.getElementById(`node-${node.id}`) as SVGGElement | null) || undefined;
+                if (g) this.elementCache.set(node.id, g);
+            }
+
             if (!g) {
                 g = this.createNodeElement(node, stateManager, registry, direction);
                 this.nodesGroup.appendChild(g);
+                this.elementCache.set(node.id, g);
                 if (stateManager?.onNodeMount) {
                     const wrapper = g.querySelector('.sci-flow-node-wrapper') as HTMLDivElement;
                     const bodyArea = g.querySelector('.sci-flow-node-body') as HTMLDivElement;
@@ -39,6 +50,7 @@ export class NodeManager {
                     this.nodesGroup.removeChild(g);
                     g = this.createNodeElement(node, stateManager, registry, direction);
                     this.nodesGroup.appendChild(g);
+                    this.elementCache.set(node.id, g);
                     if (stateManager?.onNodeMount) {
                         const newWrapper = g.querySelector('.sci-flow-node-wrapper') as HTMLDivElement;
                         const newBodyArea = g.querySelector('.sci-flow-node-body') as HTMLDivElement;
@@ -55,61 +67,49 @@ export class NodeManager {
                 g.classList.remove('sci-flow-node-selected');
             }
 
-            // Port Highlighting
-            const highlighted = stateManager?.getState().highlightedConnection;
+            // Port Highlighting - Optimized
             const ports = g.querySelectorAll('.sci-flow-port') as NodeListOf<SVGCircleElement>;
-
             let hasPeerConnection = false;
 
-            ports.forEach(p => {
-                const portId = p.dataset.portid;
-                const isSelected = highlighted && highlighted.nodeId === node.id && highlighted.portId === portId;
+            if (highlighted) {
+                const isThisHighlightedNode = highlighted.nodeId === node.id;
+                
+                // Get relevant edges only once for this node if highlighted exists
+                const relevantEdges = state?.edges ? Array.from(state.edges.values()).filter(e => 
+                    (e.source === highlighted.nodeId && e.sourceHandle === highlighted.portId && e.target === node.id) ||
+                    (e.target === highlighted.nodeId && e.targetHandle === highlighted.portId && e.source === node.id)
+                ) : [];
 
-                // For "peer" ports: find if this port is at the other end of any edge connected to the highlighted port
-                let isPeer = false;
-                if (highlighted && !isSelected) {
-                    const edges = stateManager?.getState().edges;
-                    edges?.forEach(e => {
-                        if (e.source === highlighted.nodeId && e.sourceHandle === highlighted.portId) {
-                            if (e.target === node.id && e.targetHandle === portId) {
-                                isPeer = true;
-                                hasPeerConnection = true;
-                            }
-                        } else if (e.target === highlighted.nodeId && e.targetHandle === highlighted.portId) {
-                            if (e.source === node.id && e.sourceHandle === portId) {
-                                isPeer = true;
-                                hasPeerConnection = true;
-                            }
-                        }
-                    });
-                }
+                ports.forEach(p => {
+                    const portId = p.dataset.portid;
+                    const isSelected = isThisHighlightedNode && highlighted.portId === portId;
 
-                // For "compatible" ports: same data type but not currently connected
-                let isCompatible = false;
-                if (highlighted && !isSelected && !isPeer && portId) {
-                    const sourceNode = stateManager.getState().nodes.get(highlighted.nodeId);
-                    const sourcePort = highlighted.type === 'input' ? sourceNode?.inputs?.[highlighted.portId] : sourceNode?.outputs?.[highlighted.portId];
-                    const targetPort = p.dataset.portType === 'in' ? node.inputs?.[portId] : node.outputs?.[portId];
-
-                    if (sourcePort && targetPort && p.dataset.portType !== (highlighted.type === 'input' ? 'in' : 'out')) {
-                        // Compatibility: matching types or either is 'any'
-                        isCompatible = sourcePort.dataType === 'any' || targetPort.dataType === 'any' || sourcePort.dataType === targetPort.dataType;
+                    let isPeer = false;
+                    if (relevantEdges.length > 0 && !isSelected) {
+                        isPeer = relevantEdges.some(e => 
+                            (e.source === highlighted.nodeId && e.sourceHandle === highlighted.portId && e.target === node.id && e.targetHandle === portId) ||
+                            (e.target === highlighted.nodeId && e.targetHandle === highlighted.portId && e.source === node.id && e.sourceHandle === portId)
+                        );
+                        if (isPeer) hasPeerConnection = true;
                     }
-                }
 
-                if (isSelected) {
-                    p.classList.add('sci-flow-port-selected');
-                    p.classList.remove('sci-flow-port-peer', 'sci-flow-port-compatible');
-                } else if (isPeer) {
-                    p.classList.add('sci-flow-port-peer');
-                    p.classList.remove('sci-flow-port-selected', 'sci-flow-port-compatible');
-                } else if (isCompatible) {
-                    p.classList.add('sci-flow-port-compatible');
-                    p.classList.remove('sci-flow-port-selected', 'sci-flow-port-peer');
-                } else {
-                    p.classList.remove('sci-flow-port-selected', 'sci-flow-port-peer', 'sci-flow-port-compatible');
-                }
-            });
+                    // Compatibility
+                    let isCompatible = false;
+                    if (!isSelected && !isPeer && portId) {
+                        const sourceNode = state?.nodes.get(highlighted.nodeId);
+                        const sourcePort = highlighted.type === 'input' ? sourceNode?.inputs?.[highlighted.portId] : sourceNode?.outputs?.[highlighted.portId];
+                        const targetPort = p.dataset.portType === 'in' ? node.inputs?.[portId] : node.outputs?.[portId];
+
+                        if (sourcePort && targetPort && p.dataset.portType !== (highlighted.type === 'input' ? 'in' : 'out')) {
+                            isCompatible = sourcePort.dataType === 'any' || targetPort.dataType === 'any' || sourcePort.dataType === targetPort.dataType;
+                        }
+                    }
+
+                    this.updatePortClasses(p, isSelected, isPeer, isCompatible);
+                });
+            } else {
+                ports.forEach(p => this.updatePortClasses(p, false, false, false));
+            }
 
             // Highlight node if it's a peer
             if (hasPeerConnection) {
@@ -121,13 +121,17 @@ export class NodeManager {
             existingNodeDocs.delete(`node-${node.id}`);
         });
 
-        // Reorder DOM to bring selected nodes to the front (highest z-index)
-        // while preserving the original insertion order for unselected nodes.
+        // Cleanup element cache
+        existingNodeDocs.forEach(id => {
+            const nodeId = id.replace('node-', '');
+            this.elementCache.delete(nodeId);
+        });
+
+        // Reorder DOM only if necessary
         const unselectedGroups: SVGGElement[] = [];
         const selectedGroups: SVGGElement[] = [];
-
         nodes.forEach(node => {
-            const g = document.getElementById(`node-${node.id}`) as SVGGElement | null;
+            const g = this.elementCache.get(node.id);
             if (g) {
                 if (node.selected) selectedGroups.push(g);
                 else unselectedGroups.push(g);
@@ -141,6 +145,26 @@ export class NodeManager {
                 this.nodesGroup.insertBefore(g, currentAtPos || null);
             }
         });
+    }
+
+    private updatePortClasses(p: SVGCircleElement, isSelected: boolean, isPeer: boolean, isCompatible: boolean) {
+        if (isSelected) {
+            p.classList.toggle('sci-flow-port-selected', true);
+            p.classList.toggle('sci-flow-port-peer', false);
+            p.classList.toggle('sci-flow-port-compatible', false);
+        } else if (isPeer) {
+            p.classList.toggle('sci-flow-port-selected', false);
+            p.classList.toggle('sci-flow-port-peer', true);
+            p.classList.toggle('sci-flow-port-compatible', false);
+        } else if (isCompatible) {
+            p.classList.toggle('sci-flow-port-selected', false);
+            p.classList.toggle('sci-flow-port-peer', false);
+            p.classList.toggle('sci-flow-port-compatible', true);
+        } else {
+            p.classList.toggle('sci-flow-port-selected', false);
+            p.classList.toggle('sci-flow-port-peer', false);
+            p.classList.toggle('sci-flow-port-compatible', false);
+        }
     }
 
     private createNodeElement(
@@ -237,7 +261,7 @@ export class NodeManager {
                 port.setAttribute('cx', String(spacing * (i + 1)));
                 port.setAttribute('cy', '-6');
             } else {
-                const y = headerHeight + 60 + 13 + (i * portSpacing);
+                const y = headerHeight + 64 + 11 + (i * portSpacing);
                 port.setAttribute('cy', y.toString());
                 port.setAttribute('cx', '-6');
             }
@@ -251,7 +275,7 @@ export class NodeManager {
                 port.setAttribute('cx', String(spacing * (i + 1)));
                 port.setAttribute('cy', String(initialHeight + 6));
             } else {
-                const y = headerHeight + 60 + 13 + (i * portSpacing);
+                const y = headerHeight + 64 + 11 + (i * portSpacing);
                 port.setAttribute('cy', y.toString());
                 port.setAttribute('cx', String(initialWidth + 6));
             }

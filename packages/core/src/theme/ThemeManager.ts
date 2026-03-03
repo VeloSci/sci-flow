@@ -30,6 +30,10 @@ export class ThemeManager {
         this.applyThemeVariables();
     }
 
+    public getTheme(): Theme {
+        return this.currentTheme;
+    }
+
     private applyThemeVariables() {
         if (!this.styleInjector) return;
 

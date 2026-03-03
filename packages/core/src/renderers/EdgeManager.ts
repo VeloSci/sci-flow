@@ -9,6 +9,9 @@ import {
 } from './EdgeAnimations';
 
 export class EdgeManager {
+    private elementCache: Map<string, SVGGElement> = new Map();
+    private subElementCache: Map<string, Record<string, SVGElement>> = new Map();
+
     constructor(
         private edgesGroup: SVGGElement,
         private routerWorker: Worker,
@@ -33,11 +36,16 @@ export class EdgeManager {
             const targetPos = this.getPortAnchorFn(targetNode, edge.targetHandle);
 
             const routingMode = edge.type || state.defaultEdgeType || 'bezier';
-            let group = document.getElementById(`edge-group-${edge.id}`) as SVGGElement | null;
+            let group = this.elementCache.get(edge.id);
+            if (!group) {
+                group = (document.getElementById(`edge-group-${edge.id}`) as SVGGElement | null) || undefined;
+                if (group) this.elementCache.set(edge.id, group);
+            }
 
             if (!group) {
                 group = this.createEdgeElement(edge);
                 this.edgesGroup.appendChild(group);
+                this.elementCache.set(edge.id, group);
             }
 
             // Filter obstacles to exclude source and target nodes to avoid blocking the path start/end
@@ -61,15 +69,22 @@ export class EdgeManager {
             existingEdgeDocs.delete(`edge-group-${edge.id}`);
         });
 
-        // Reorder DOM to bring highlighted edges to the front
+        // Cleanup element cache
+        existingEdgeDocs.forEach(id => {
+            const edgeId = id.replace('edge-group-', '');
+            this.elementCache.delete(edgeId);
+            this.subElementCache.delete(edgeId);
+        });
+
+        // Reorder DOM to bring highlighted edges to the front - only if moved
         const highlighted = state.highlightedConnection;
         if (highlighted) {
             state.edges.forEach(edge => {
                 const isHighlighted = (edge.source === highlighted.nodeId && edge.sourceHandle === highlighted.portId) ||
                     (edge.target === highlighted.nodeId && edge.targetHandle === highlighted.portId);
                 if (isHighlighted) {
-                    const group = document.getElementById(`edge-group-${edge.id}`);
-                    if (group && group.parentElement) {
+                    const group = this.elementCache.get(edge.id);
+                    if (group && group.parentElement && group.nextSibling !== null) {
                         group.parentElement.appendChild(group); // Move to the end of the group
                     }
                 }
@@ -149,13 +164,22 @@ export class EdgeManager {
 
 
     private updateEdgeVisuals(group: SVGGElement, edge: Edge, sourcePos: Position, targetPos: Position, routingMode: NonNullable<Edge['type']>, obstacles: Array<{ id: string, x: number, y: number, width: number, height: number }>): void {
-        const bgPath = group.querySelector('.sci-flow-edge-bg') as SVGPathElement;
-        const fgPath = group.querySelector('.sci-flow-edge-fg') as SVGPathElement;
-        const overlayPath = group.querySelector('.sci-flow-edge-overlay') as SVGPathElement;
-        const beamPath = group.querySelector('.sci-flow-edge-beam-overlay') as SVGPathElement;
-        const symbolsText = group.querySelector('.sci-flow-edge-symbols') as SVGTextElement;
-        const sourcePort = group.querySelector('.sci-flow-port-source') as SVGCircleElement;
-        const targetPort = group.querySelector('.sci-flow-port-target') as SVGCircleElement;
+        let subCache = this.subElementCache.get(edge.id);
+        if (!subCache) {
+            subCache = {
+                bgPath: group.querySelector('.sci-flow-edge-bg') as SVGPathElement,
+                fgPath: group.querySelector('.sci-flow-edge-fg') as SVGPathElement,
+                overlayPath: group.querySelector('.sci-flow-edge-overlay') as SVGPathElement,
+                beamPath: group.querySelector('.sci-flow-edge-beam-overlay') as SVGPathElement,
+                symbolsText: group.querySelector('.sci-flow-edge-symbols') as SVGTextElement,
+                sourcePort: group.querySelector('.sci-flow-port-source') as SVGCircleElement,
+                targetPort: group.querySelector('.sci-flow-port-target') as SVGCircleElement,
+                animObjsContainer: group.querySelector('.sci-flow-edge-anim-objects') as SVGGElement
+            };
+            this.subElementCache.set(edge.id, subCache);
+        }
+
+        const { bgPath, fgPath, overlayPath, beamPath, symbolsText, sourcePort, targetPort, animObjsContainer } = subCache;
 
         [sourcePort, targetPort].forEach(p => {
             p.style.fill = 'var(--sf-bg)';
@@ -196,7 +220,6 @@ export class EdgeManager {
         if (symbolsText) symbolsText.style.display = 'none';
 
         // Clear Phase 2 traveling objects
-        const animObjsContainer = group.querySelector('.sci-flow-edge-anim-objects') as SVGGElement | null;
         if (animObjsContainer) {
             animObjsContainer.innerHTML = '';
         }
