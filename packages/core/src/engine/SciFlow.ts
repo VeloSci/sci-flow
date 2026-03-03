@@ -30,6 +30,7 @@ export class SciFlow {
   private unsubscribe: () => void;
   private themeManager: ThemeManager;
   public plugins: PluginHost;
+  private rafId: number | null = null;
 
   constructor(options: SciFlowOptions) {
     this.options = { renderer: 'auto', autoSwitchThreshold: 1000, theme: 'light', ...options };
@@ -63,7 +64,7 @@ export class SciFlow {
     this.gridRenderer = new GridRenderer({ container: this.container });
 
     // Initial renderer setup
-    const initialRendererType = this.options.renderer === 'auto' ? 'svg' : (this.options.renderer || 'svg');
+    const initialRendererType = this.options.renderer === 'auto' ? 'canvas' : (this.options.renderer || 'canvas');
     this.renderer = this.createRenderer(initialRendererType);
     this.renderer.stateManager = this.stateManager;
 
@@ -71,18 +72,57 @@ export class SciFlow {
     this.plugins.shortcuts.onAction('fitView', () => { this.fitView(); });
 
     // Subscribe to state changes and trigger render
-    this.unsubscribe = this.stateManager.subscribe((state: FlowState) => {
-      this.gridRenderer.render(state);
-      this.renderer.render(state, this.stateManager.getNodeRegistry());
-      this.plugins.onStateChange();
-      this.checkRendererThreshold(state.nodes.size);
+    this.unsubscribe = this.stateManager.subscribe(() => {
+      this.requestRender();
     });
+
+    // Initial render
+    this.requestRender();
+  }
+
+  private requestRender() {
+    if (this.rafId !== null) return;
+
+    this.rafId = requestAnimationFrame(() => {
+      this.rafId = null;
+      this.performRender();
+    });
+  }
+
+  private performRender() {
+    const state = this.stateManager.getState();
+    const dirty = this.stateManager.getDirty();
+
+    // If everything is clean, we might still want to render (e.g. initial render)
+    // but usually subscribers are only called on change.
+    
+    this.gridRenderer.render(state);
+    this.renderer.render(state, this.stateManager.getNodeRegistry(), this.themeManager.getTheme(), dirty);
+    this.plugins.onStateChange();
+    this.checkRendererThreshold(state.nodes.size);
+
+    // Clear dirty flags after render
+    this.stateManager.clearDirty();
   }
 
   private createRenderer(type: 'svg' | 'canvas'): BaseRenderer {
     return type === 'svg'
       ? new SVGRenderer({ container: this.container })
       : new CanvasRenderer({ container: this.container });
+  }
+
+  public setRenderer(type: 'svg' | 'canvas') {
+    if (this.renderer.constructor.name.toLowerCase().includes(type)) return;
+
+    const oldRenderer = this.renderer;
+    this.renderer = this.createRenderer(type);
+    this.renderer.stateManager = this.stateManager;
+    
+    // Replace the viewport element in the interaction manager if needed
+    // The interaction manager listens on the container generally, so we just need to ensure the grid/renderer order
+    oldRenderer.destroy();
+    
+    this.requestRender();
   }
 
   private checkRendererThreshold(nodeCount: number) {
@@ -103,7 +143,11 @@ export class SciFlow {
     this.renderer = this.createRenderer(type);
 
     // Re-render immediately on the new renderer
-    this.renderer.render(this.stateManager.getState(), this.stateManager.getNodeRegistry());
+    this.renderer.render(
+      this.stateManager.getState(), 
+      this.stateManager.getNodeRegistry(),
+      this.themeManager.getTheme()
+    );
   }
 
   public setTheme(themeOpt?: Partial<Theme> | 'light' | 'dark' | 'system') {
@@ -243,6 +287,10 @@ export class SciFlow {
     this.themeManager.destroy();
     this.plugins.destroy();
     this.gridRenderer.destroy();
+    if (this.rafId !== null) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
+    }
     this.renderer.destroy();
   }
 }

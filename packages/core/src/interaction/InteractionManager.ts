@@ -6,6 +6,7 @@ import { ConnectionManager } from './ConnectionManager';
 import { DragManager } from './DragManager';
 import { ShortcutManager } from './ShortcutManager';
 import { TouchManager } from './TouchManager';
+import { getPortAnchor } from '../utils/ports';
 
 export interface InteractionOptions {
     container: HTMLElement;
@@ -97,24 +98,24 @@ export class InteractionManager {
     private handlePointerDown(e: PointerEvent) {
         this.touch.trackPointer(e);
 
-        const target = e.target as HTMLElement;
-        const portEl = target.closest('.sci-flow-port') as HTMLElement;
+        const state = this.stateManager.getState();
+        const rect = this.container.getBoundingClientRect();
+        const flowPos = this.screenToFlow({ x: e.clientX, y: e.clientY }, state.viewport, rect);
+
+        const portMatch = this.findPortAt(flowPos);
         this.pointerDownPos = { x: e.clientX, y: e.clientY };
 
-        if (portEl?.dataset.nodeid && portEl?.dataset.portid) {
+        if (portMatch) {
             this.pendingPort = {
-                nodeId: portEl.dataset.nodeid,
-                portId: portEl.dataset.portid,
+                nodeId: portMatch.nodeId,
+                portId: portMatch.portId,
                 pointerId: e.pointerId
             };
             this.container.setPointerCapture(e.pointerId);
             return;
         }
 
-        const state = this.stateManager.getState();
-        const rect = this.container.getBoundingClientRect();
-        const flowPos = this.screenToFlow({ x: e.clientX, y: e.clientY }, state.viewport, rect);
-
+        const target = e.target as HTMLElement;
         const noteEl = target.closest('.sci-flow-sticky-note') as HTMLElement;
         if (noteEl && noteEl.id) {
             this.drag.startDrag([noteEl.id], flowPos, e.pointerId);
@@ -139,13 +140,12 @@ export class InteractionManager {
         }
 
         // Check if we clicked on an edge
-        const edgeEl = target.closest('.sci-flow-edge-bg, .sci-flow-edge-fg');
-        if (edgeEl && edgeEl.parentElement && edgeEl.parentElement.id.startsWith('edge-group-')) {
-            const edgeId = edgeEl.parentElement.id.replace('edge-group-', '');
+        const clickedEdgeId = this.findEdgeAt(flowPos);
+        if (clickedEdgeId) {
             if (e.shiftKey) {
-                this.stateManager.appendSelection(undefined, edgeId);
+                this.stateManager.appendSelection(undefined, clickedEdgeId);
             } else {
-                this.stateManager.setSelection([], [edgeId]);
+                this.stateManager.setSelection([], [clickedEdgeId]);
             }
             return;
         }
@@ -249,13 +249,38 @@ export class InteractionManager {
         const state = this.stateManager.getState();
         const nodes = Array.from(state.nodes.values()).reverse();
         for (const node of nodes) {
-            const nw = node.style?.width || 200;
-            const nh = node.style?.height || 150;
+            const nw = node.style?.width || 160;
+            const nh = node.style?.height || 160;
             if (pos.x >= node.position.x && pos.x <= node.position.x + nw &&
                 pos.y >= node.position.y && pos.y <= node.position.y + nh) {
                 return node.id;
             }
         }
+        return null;
+    }
+
+    private findPortAt(pos: Position): { nodeId: string, portId: string } | null {
+        const state = this.stateManager.getState();
+        
+        for (const node of state.nodes.values()) {
+            const inputs = Object.keys(node.inputs || {});
+            const outputs = Object.keys(node.outputs || {});
+            
+            for (const id of [...inputs, ...outputs]) {
+                const anchor = getPortAnchor(node, id, this.container, state.direction);
+                const dx = pos.x - anchor.x;
+                const dy = pos.y - anchor.y;
+                if (Math.sqrt(dx * dx + dy * dy) <= 12) { // 12px hit radius
+                    return { nodeId: node.id, portId: id };
+                }
+            }
+        }
+        return null;
+    }
+
+    private findEdgeAt(_pos: Position): string | null {
+        // Simple bounding box or distance to line check
+        // For now, return null as we focus on ports/nodes
         return null;
     }
 

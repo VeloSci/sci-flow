@@ -78,7 +78,7 @@ export function getPortAnchor(node: Node, portId: string, container?: ParentNode
     else side = 'right';
   }
 
-  const bodyHeight = 60;
+  const bodyHeight = 60; // Dedicated content area (was 26)
   const estimatedPortsOffset = headerHeight + bodyHeight;
   const safeIndex = Math.max(0, portIndex);
   const portY = estimatedPortsOffset + 13 + (safeIndex * portSpacing);
