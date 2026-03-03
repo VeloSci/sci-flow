@@ -1,5 +1,5 @@
 import { BaseRenderer, RendererOptions } from './BaseRenderer';
-import { FlowState, Node, Position } from '../types';
+import { FlowState, Node, Edge, Position, Theme } from '../types';
 import { getEdgePath } from '../utils/edges';
 import { PathfindingWorkerResponse } from '../workers/pathfinding.worker';
 import { SVG_RENDERER_STYLES } from './SVGRendererStyles';
@@ -29,6 +29,7 @@ export class SVGRenderer extends BaseRenderer {
   constructor(options: RendererOptions) {
     super(options);
     this.container.classList.add('sci-flow-container');
+    this.container.classList.remove('sci-flow-touch-responsive');
 
     this.routerWorker = createPathfindingWorker();
     this.routerWorker.onmessage = (e: MessageEvent<PathfindingWorkerResponse>) => {
@@ -90,39 +91,55 @@ export class SVGRenderer extends BaseRenderer {
     );
   }
 
-  public render(state: FlowState, registry: Map<string, NodeDefinition>): void {
-    const transform = `translate(${state.viewport.x}, ${state.viewport.y}) scale(${state.viewport.zoom})`;
-    this.edgesGroup.setAttribute('transform', transform);
-    this.labelsGroup.setAttribute('transform', transform);
-    this.nodesGroup.setAttribute('transform', transform);
+  public render(state: FlowState, registry: Map<string, NodeDefinition>, theme: Theme, dirty?: { nodes: boolean; edges: boolean; viewport: boolean }): void {
+    const isInitial = !this.nodesGroup.getAttribute('transform');
 
-    const existingNodeDocs = new Set(Array.from(this.nodesGroup.children).map(n => n.id));
-    this.nodeManager.reconcile(state.nodes, existingNodeDocs, this.stateManager, registry, state.direction || 'horizontal');
+    if (isInitial || !dirty || dirty.viewport) {
+      const transform = `translate(${state.viewport.x}, ${state.viewport.y}) scale(${state.viewport.zoom})`;
+      this.edgesGroup.setAttribute('transform', transform);
+      this.labelsGroup.setAttribute('transform', transform);
+      this.nodesGroup.setAttribute('transform', transform);
+    }
 
-    existingNodeDocs.forEach(id => {
-      document.getElementById(id)?.remove();
-      const sm = this.stateManager;
-      // Extract the original node ID from "node-${node.id}"
-      const nodeId = id.replace('node-', '');
-      if (sm?.onNodeUnmount) sm.onNodeUnmount(nodeId);
-    });
+    if (isInitial || !dirty || dirty.nodes || dirty.edges) {
+      const existingNodeDocs = new Set(Array.from(this.nodesGroup.children).map(n => n.id));
+      const existingEdgeDocs = new Set(Array.from(this.edgesGroup.children).map(n => n.id));
 
-    const obstacles = Array.from(state.nodes.values()).map(n => ({
-      id: n.id,
-      x: n.position.x,
-      y: n.position.y,
-      width: n.style?.width || 140,
-      height: n.style?.height || 100
-    }));
+      const obstacles = Array.from(state.nodes.values()).map(n => ({
+        id: n.id,
+        x: n.position.x,
+        y: n.position.y,
+        width: n.style?.width || 140,
+        height: n.style?.height || 100
+      }));
 
-    const existingEdgeDocs = new Set(Array.from(this.edgesGroup.children).map(n => n.id));
-    this.edgeManager.reconcile(state, existingEdgeDocs, obstacles);
+      if (isInitial || !dirty || dirty.nodes) {
+        this.nodeManager.reconcile(state.nodes, existingNodeDocs, this.stateManager, registry, state.direction || 'horizontal');
+        
+        existingNodeDocs.forEach(id => {
+          document.getElementById(id)?.remove();
+          const sm = this.stateManager;
+          const nodeId = id.replace('node-', '');
+          if (sm?.onNodeUnmount) sm.onNodeUnmount(nodeId);
+        });
+      }
 
-    existingEdgeDocs.forEach(id => {
-      document.getElementById(id)?.remove();
-    });
+      if (isInitial || !dirty || dirty.edges || dirty.nodes) {
+        this.edgeManager.reconcile(state, existingEdgeDocs, obstacles);
+        
+        existingEdgeDocs.forEach(id => {
+          document.getElementById(id)?.remove();
+        });
+      }
+    }
 
-    this.renderDraftEdge(state, obstacles);
+    this.renderDraftEdge(state, Array.from(state.nodes.values()).map(n => ({
+        id: n.id,
+        x: n.position.x,
+        y: n.position.y,
+        width: n.style?.width || 140,
+        height: n.style?.height || 100
+      })));
   }
 
   private renderDraftEdge(state: FlowState, obstacles: Array<{ id: string, x: number, y: number, width: number, height: number }>): void {

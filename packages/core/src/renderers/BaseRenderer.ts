@@ -1,4 +1,4 @@
-import { FlowState } from '../types';
+import { FlowState, Theme } from '../types';
 import { StateManager } from '../state/StateManager';
 import { NodeDefinition } from '../state/RegistryManager';
 
@@ -14,7 +14,7 @@ export abstract class BaseRenderer {
     this.container = options.container;
   }
 
-  public abstract render(state: FlowState, registry: Map<string, NodeDefinition>): void;
+  public abstract render(state: FlowState, registry: Map<string, NodeDefinition>, theme: Theme, dirty?: { nodes: boolean; edges: boolean; viewport: boolean }): void;
   public abstract destroy(): void;
   public abstract getViewportElement(): HTMLElement | SVGElement;
 }
