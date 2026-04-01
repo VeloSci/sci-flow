@@ -15,6 +15,8 @@ export interface InteractionOptions {
     snapToGrid?: boolean;
     gridSize?: number;
     showSmartGuides?: boolean;
+    nodesDraggable?: boolean;
+    nodesConnectable?: boolean;
     plugins?: import('../plugins/PluginHost').PluginHost;
 }
 
@@ -35,10 +37,14 @@ export class InteractionManager {
     private isSpacePressed = false;
     private cleanupEvents: Array<() => void> = [];
     private pendingPort: { nodeId: string, portId: string, pointerId: number } | null = null;
+    private nodesDraggable: boolean;
+    private nodesConnectable: boolean;
 
-    constructor({ container, stateManager, snapToGrid = true, gridSize = 20, showSmartGuides = true, plugins }: InteractionOptions) {
+    constructor({ container, stateManager, snapToGrid = true, gridSize = 20, showSmartGuides = true, nodesDraggable = true, nodesConnectable = true, plugins }: InteractionOptions) {
         this.container = container;
         this.stateManager = stateManager;
+        this.nodesDraggable = nodesDraggable;
+        this.nodesConnectable = nodesConnectable;
 
         this.panZoom = new PanZoomManager(stateManager);
         this.selection = new SelectionManager(container, stateManager);
@@ -102,6 +108,9 @@ export class InteractionManager {
         this.pointerDownPos = { x: e.clientX, y: e.clientY };
 
         if (portEl?.dataset.nodeid && portEl?.dataset.portid) {
+            if (!this.nodesConnectable) {
+                return;
+            }
             this.pendingPort = {
                 nodeId: portEl.dataset.nodeid,
                 portId: portEl.dataset.portid,
@@ -134,7 +143,9 @@ export class InteractionManager {
                 this.stateManager.appendSelection(clickedNodeId);
             }
 
-            this.drag.startDrag(selectedIds, flowPos, e.pointerId);
+            if (this.nodesDraggable) {
+                this.drag.startDrag(selectedIds, flowPos, e.pointerId);
+            }
             return;
         }
 
