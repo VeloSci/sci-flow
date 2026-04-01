@@ -17,6 +17,8 @@ export interface SciFlowOptions {
   direction?: 'horizontal' | 'vertical';
   minZoom?: number;
   maxZoom?: number;
+  nodesDraggable?: boolean;
+  nodesConnectable?: boolean;
   plugins?: PluginHostOptions;
 }
 
@@ -57,6 +59,8 @@ export class SciFlow {
       stateManager: this.stateManager,
       minZoom: this.options.minZoom,
       maxZoom: this.options.maxZoom,
+      nodesDraggable: this.options.nodesDraggable,
+      nodesConnectable: this.options.nodesConnectable,
       plugins: this.plugins // Add plugins here
     });
 
