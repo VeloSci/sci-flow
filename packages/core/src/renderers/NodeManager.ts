@@ -164,6 +164,10 @@ export class NodeManager {
         wrapper.className = 'sci-flow-node-wrapper';
         wrapper.dataset.type = node.type;
         wrapper.dataset.direction = direction;
+        if (node.resizable) {
+            wrapper.style.resize = 'both';
+            wrapper.style.overflow = 'auto';
+        }
 
         // Essential: Track if this is a default preview to allow later replacement
         const nodeDef = registry.get(node.type);

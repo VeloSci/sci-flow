@@ -51,6 +51,8 @@ export function useSciFlow({
       direction: options.direction,
       minZoom: options.minZoom,
       maxZoom: options.maxZoom,
+      nodesDraggable: options.nodesDraggable,
+      nodesConnectable: options.nodesConnectable,
     });
 
     const stateManager = engineRef.current.stateManager;
@@ -60,6 +62,8 @@ export function useSciFlow({
       stateManager.onEdgesChange = (newEdges: Edge[]) => setEdgesState(newEdges);
 
       unsubscribe = stateManager.subscribe((state) => {
+        setNodesState(Array.from(state.nodes.values()));
+        setEdgesState(Array.from(state.edges.values()));
         setHighlightedConnection(state.highlightedConnection);
       });
 
@@ -111,6 +115,18 @@ export function useSciFlow({
       engineRef.current.setDirection(options.direction);
     }
   }, [options.direction]);
+
+  useEffect(() => {
+    if (engineRef.current) {
+      engineRef.current.setNodes(initialNodes);
+    }
+  }, [initialNodes]);
+
+  useEffect(() => {
+    if (engineRef.current) {
+      engineRef.current.setEdges(initialEdges);
+    }
+  }, [initialEdges]);
 
   // Update context menu handlers dynamically
   useEffect(() => {
